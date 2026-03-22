@@ -1,103 +1,73 @@
-# Tribe Command Center
+# React + TypeScript + Vite
 
-A web-based coordination platform for EVE Frontier tribes. Define strategic goals, break them into tasks, and let tribe members pledge and track resource contributions — rebuilding civilization through organized collaboration.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Built for the **EVE Frontier × Sui Hackathon 2026** — Theme: "A Toolkit for Civilization"
+Currently, two official plugins are available:
 
-## Features
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-- **Wallet Login** — Connect via EVE Vault / Sui wallet, identity linked to on-chain character
-- **Goal Management** — Create and track tribe-wide strategic objectives
-- **Task Board** — Break goals into actionable tasks with resource requirements
-- **Contribution Pledging** — Members pledge resources, track delivery progress
-- **Tribe Dashboard** — Overview of tribe activity, progress, and member contributions
+## React Compiler
 
-## Tech Stack
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-- React 19 + TypeScript + Vite
-- Radix UI + Tailwind CSS (dark EVE aesthetic)
-- @evefrontier/dapp-kit (wallet connection + chain data)
-- Supabase (PostgreSQL + Realtime)
-- TanStack Query + Zustand
+## Expanding the ESLint configuration
 
-## Getting Started
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```bash
-npm install
-npm run dev
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for detailed setup instructions.
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
----
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-## What's Included
-
-- **Agent steering system** — `AGENTS.md` + `.github/copilot-instructions.md` provide guardrails, conventions, and operational rules that AI coding agents automatically pick up
-- **Working Memory protocol** — maintain context across long agent sessions and survive automatic summarization
-- **Risk classification** — Low/Medium/High risk classes with approval token escalation for sensitive changes
-- **Three-tier permission model** — Always do / Ask first / Never do boundaries for agent actions
-- **Decision logging** — templates for recording architectural choices
-- **Security guidelines** — OWASP-based secure coding practices
-- **VS Code config** — settings and extensions tuned for agent workflows
-- **Skills** — reusable agent skills for deployment and container operations
-- **Cloudflare templates** (optional) — Pages/Workers configuration starters
-
-## Quick Start
-
-1. Copy this scaffold into your project (or use as a template repo)
-2. **Run the vibe bootstrap** — see [Getting Started](#getting-started-vibe-mode) above
-3. Open in VS Code with Copilot enabled — agents automatically load the steering files
-4. Start building
-
-> **Manual alternative:** Replace `{{PLACEHOLDER}}` markers by hand — see [docs/SCAFFOLD_NOTES.md](docs/SCAFFOLD_NOTES.md)
-
-## File Structure
-
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-AGENTS.md                          ← Auto-loaded agent context (VS Code 1.104+)
-GITHUB-COPILOT.md                  ← Copilot playbook
-llms.txt                           ← AI-readable doc pointer
-.github/
-  copilot-instructions.md          ← Authoritative guardrails
-  security-guidelines.md           ← OWASP security rules
-  prompts/
-    vibe-bootstrap.prompt.md       ← Interactive setup (run this first!)
-    rehydrate.prompt.md            ← Context recovery prompt
-  skills/deploy/SKILL.md           ← Deploy skill
-  skills/docker-ops/SKILL.md       ← Container ops skill
-.vscode/
-  settings.json                    ← Agent settings
-  extensions.json                  ← Recommended extensions
-  prompts/plan.prompt.md           ← Planning prompt
-docs/
-  README.md                        ← Documentation index
-  WORKSPACE_ABSTRACT.md            ← Scaffold overview
-  SCAFFOLD_NOTES.md                ← Customization guide
-  DECISIONS_TEMPLATE.md            ← Decision log format
-  COPILOT_MEMORY_GUIDELINES.md     ← Memory guidelines
-templates/
-  cloudflare/                      ← Optional CF config templates
-```
-
-## How It Works
-
-VS Code 1.104+ automatically loads `AGENTS.md` into every Copilot agent conversation. GitHub Copilot also reads `.github/copilot-instructions.md` for repo-wide rules. Together, these files steer AI assistants to:
-
-- Follow your project conventions
-- Respect risk boundaries and approval workflows
-- Run verification gates (typecheck, build, smoke tests)
-- Log decisions and maintain context
-- Execute CLI commands directly instead of asking you to run them
-
-> **Optional:** Deployment templates are available in `templates/` when you're ready for hosting.
-
-## Requirements
-
-- VS Code 1.104+ (for `AGENTS.md` auto-loading)
-- GitHub Copilot extension (recommended) or any VS Code-compatible AI agent
-- No runtime dependencies — this scaffold contains only markdown, JSON, and configuration files
-
-## License
-
-See [LICENSE](LICENSE) for details.
