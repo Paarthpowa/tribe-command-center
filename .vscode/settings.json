@@ -50,6 +50,9 @@
     "chat.math.enabled": true,
     "chat.agent.maxRequests": 100,
 
+    // Use Opus for Explore sub-agents (not Haiku) for reliability
+    "chat.exploreAgent.defaultModel": "Claude Opus 4.6 (copilot)",
+
     // ─────────────────────────────────────────────────────────────────────────
     // Git Settings
     // ─────────────────────────────────────────────────────────────────────────

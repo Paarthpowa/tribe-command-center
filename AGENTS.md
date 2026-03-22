@@ -1,4 +1,4 @@
-# Agents Context — {{PROJECT_NAME}}
+# Agents Context — Tribe Command Center
 
 Purpose: Provide persistent, high-signal context and guardrails for agent mode in this repository. VS Code will automatically ingest this file (1.104+). Keep it short and link out for depth.
 
@@ -11,10 +11,11 @@ Purpose: Provide persistent, high-signal context and guardrails for agent mode i
 
 ## Project quick facts
 
-- What: {{PROJECT_DESCRIPTION}}
-- Frontend: `{{FRONTEND_DIR}}/` ({{FRONTEND_STACK}})
-- Backend: {{BACKEND_DESCRIPTION}}
-- Data: {{DATA_DESCRIPTION}}
+- What: Web-based coordination platform for EVE Frontier tribes — goals, tasks, resource pledging
+- Frontend: `src/` (React 19 + TypeScript + Vite + Radix UI + Tailwind CSS)
+- Backend: Supabase (PostgreSQL + Auth + Realtime)
+- Data: PostgreSQL via Supabase; on-chain character/tribe data via @evefrontier/dapp-kit
+- Context: EVE Frontier × Sui Hackathon 2026 — deadline March 31
 
 Useful entry points:
 - **Documentation Index**: `docs/README.md` — central map for all project documentation

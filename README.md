@@ -1,28 +1,33 @@
-# Workflow Scaffold
+# Tribe Command Center
 
-A reusable, project-agnostic scaffold for AI-assisted development workflows in VS Code.
+A web-based coordination platform for EVE Frontier tribes. Define strategic goals, break them into tasks, and let tribe members pledge and track resource contributions — rebuilding civilization through organized collaboration.
 
-This is not a framework. It is a workflow.
+Built for the **EVE Frontier × Sui Hackathon 2026** — Theme: "A Toolkit for Civilization"
 
-## Getting Started (Vibe Mode)
+## Features
 
-1. Open this repository in **VS Code**
-2. Install **GitHub Copilot** (recommended — 30-day free trial available)
-3. Open **Copilot Chat** (Agent mode recommended)
-4. Run `.github/prompts/vibe-bootstrap.prompt.md`
-   Open that file, copy all its contents, paste into Copilot Chat, then press enter.
-5. Follow the guided setup — describe your idea, get a recommended stack, and generate your project foundation
+- **Wallet Login** — Connect via EVE Vault / Sui wallet, identity linked to on-chain character
+- **Goal Management** — Create and track tribe-wide strategic objectives
+- **Task Board** — Break goals into actionable tasks with resource requirements
+- **Contribution Pledging** — Members pledge resources, track delivery progress
+- **Tribe Dashboard** — Overview of tribe activity, progress, and member contributions
 
-**That's it.** The bootstrap creates your PRD, architecture draft, and next steps — then you start building.
+## Tech Stack
 
-> **Advanced users:** If you prefer manual setup, see [docs/SCAFFOLD_NOTES.md](docs/SCAFFOLD_NOTES.md) for step-by-step placeholder replacement.
+- React 19 + TypeScript + Vite
+- Radix UI + Tailwind CSS (dark EVE aesthetic)
+- @evefrontier/dapp-kit (wallet connection + chain data)
+- Supabase (PostgreSQL + Realtime)
+- TanStack Query + Zustand
 
-### VS Code Tips for Vibe Builders
+## Getting Started
 
-- Use Copilot Chat in **Agent mode** for multi-step work
-- Avoid running multiple AI extensions at once — they can conflict
-- Let the agent run safe CLI commands when appropriate
-- Review diffs before committing
+```bash
+npm install
+npm run dev
+```
+
+See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for detailed setup instructions.
 
 ---
 
