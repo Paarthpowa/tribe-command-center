@@ -50,8 +50,12 @@ export interface TribeSystem {
   id: string;
   name: string;
   category: SystemCategory;
+  /** 2D map coordinates for custom star map */
+  coordinates: { x: number; y: number };
   /** Who controls/claimed this system */
   controlledBy?: string;
+  /** Connected system IDs (gate links) */
+  connections?: string[];
   /** Known resources available */
   resources?: string[];
   /** Threat level 0-10 */

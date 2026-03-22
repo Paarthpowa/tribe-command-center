@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { GlassCard } from '../components/ui';
+import { StarMap } from '../components/StarMap';
 import { useAppStore } from '../stores/appStore';
 import type { TribeSystem, SystemCategory } from '../types';
 import {
@@ -164,10 +165,15 @@ function SystemCard({ system }: { system: TribeSystem }) {
 }
 
 export function IntelPage() {
-  const { systems } = useAppStore();
+  const { systems, goals } = useAppStore();
   const [filter, setFilter] = useState<SystemCategory | 'all'>('all');
+  const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
 
-  const filtered = filter === 'all' ? systems : systems.filter((s) => s.category === filter);
+  const filtered = selectedSystem
+    ? systems.filter((s) => s.id === selectedSystem)
+    : filter === 'all'
+      ? systems
+      : systems.filter((s) => s.category === filter);
 
   // Summary stats
   const totalRifts = systems.reduce((acc, s) => acc + (s.riftSightings?.length ?? 0), 0);
@@ -182,6 +188,20 @@ export function IntelPage() {
       <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)' }}>
         Strategic overview of known systems, threats, and rift activity.
       </p>
+
+      {/* Star Map */}
+      <div style={{ marginBottom: 24 }}>
+        <StarMap
+          systems={systems}
+          goals={goals}
+          highlightSystemIds={selectedSystem ? [selectedSystem] : undefined}
+          onSystemClick={(sys) => {
+            setSelectedSystem(sys.id === selectedSystem ? null : sys.id);
+            setFilter('all');
+          }}
+          height={420}
+        />
+      </div>
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>

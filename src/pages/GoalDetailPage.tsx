@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { TaskCard } from '../components/TaskCard';
 import { EFMapEmbed } from '../components/EFMapEmbed';
+import { StarMap } from '../components/StarMap';
 import { PledgeModal } from '../components/PledgeModal';
 import { Timeline } from '../components/Timeline';
 import { StatusBadge } from '../components/ui';
@@ -20,6 +21,7 @@ export function GoalDetailPage() {
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
   const goals = useAppStore((s) => s.goals);
+  const systems = useAppStore((s) => s.systems);
   const addContribution = useAppStore((s) => s.addContribution);
 
   const [pledgeTaskId, setPledgeTaskId] = useState<string | null>(null);
@@ -122,18 +124,42 @@ export function GoalDetailPage() {
         </ProgressRing>
       </div>
 
-      {/* EF-Map */}
+      {/* Star Map */}
       {hasMap && (
         <div style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
             Star Map
           </h2>
-          <EFMapEmbed
-            shareUrl={goal.mapShareUrl}
-            systems={allSystems}
-            links={links}
-            height={350}
-          />
+          {/* Custom interactive star map showing goal-related systems */}
+          {systems.length > 0 && (
+            <StarMap
+              systems={systems.filter((s) => allSystems.includes(s.id) || s.category === 'core')}
+              goals={[goal]}
+              highlightSystemIds={allSystems}
+              height={320}
+            />
+          )}
+          {/* Fallback: EF-Map iframe for share URLs without system data */}
+          {goal.mapShareUrl && systems.filter((s) => allSystems.includes(s.id)).length === 0 && (
+            <EFMapEmbed
+              shareUrl={goal.mapShareUrl}
+              systems={allSystems}
+              links={links}
+              height={350}
+            />
+          )}
+          {goal.mapShareUrl && (
+            <div style={{ marginTop: 6, textAlign: 'right' }}>
+              <a
+                href={goal.mapShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 11, color: 'var(--accent-cyan)', textDecoration: 'none' }}
+              >
+                Open route in EF-Map →
+              </a>
+            </div>
+          )}
         </div>
       )}
 
