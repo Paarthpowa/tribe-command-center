@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
-import type { GoalPriority, ResourceRequirement, Task } from '../types';
+import type { GoalPriority, GoalClassification, ResourceRequirement, Task } from '../types';
 import { Plus, Trash2, ArrowLeft, ArrowRight, Check, Copy } from 'lucide-react';
 
 type DraftTask = {
@@ -68,6 +68,7 @@ export function CreateGoalPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<GoalPriority>('medium');
+  const [classification, setClassification] = useState<GoalClassification>('normal');
   const [deadline, setDeadline] = useState('');
   const [mapShareUrl, setMapShareUrl] = useState('');
 
@@ -162,6 +163,7 @@ export function CreateGoalPage() {
       tribeId: 'tribe-alpha',
       title,
       description,
+      classification,
       status: 'planning',
       priority,
       createdBy: 'current-user',
@@ -241,7 +243,7 @@ export function CreateGoalPage() {
               placeholder="What is the goal about?"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             <div>
               <label style={labelStyle}>Priority</label>
               <select
@@ -253,6 +255,18 @@ export function CreateGoalPage() {
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Classification</label>
+              <select
+                style={selectStyle}
+                value={classification}
+                onChange={(e) => setClassification(e.target.value as GoalClassification)}
+              >
+                <option value="normal">Normal</option>
+                <option value="classified">🔒 Classified</option>
+                <option value="top-secret">🛡️ Top Secret</option>
               </select>
             </div>
             <div>

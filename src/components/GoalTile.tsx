@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import type { Goal } from '../types';
+import type { Goal, GoalClassification } from '../types';
 import { ProgressRing } from './ProgressRing';
 import { StatusBadge, GlassCard } from './ui';
 import {
@@ -9,6 +9,13 @@ import {
   getTaskProgress,
 } from '../lib/helpers';
 import type { CSSProperties } from 'react';
+import { Lock, ShieldAlert } from 'lucide-react';
+
+const CLASSIFICATION_STYLE: Record<GoalClassification, { label: string; color: string; icon?: typeof Lock }> = {
+  normal: { label: '', color: '' },
+  classified: { label: 'Classified', color: '#eab308', icon: Lock },
+  'top-secret': { label: 'Top Secret', color: '#ef4444', icon: ShieldAlert },
+};
 
 interface GoalTileProps {
   goal: Goal;
@@ -83,7 +90,18 @@ export function GoalTile({ goal }: GoalTileProps) {
           alignItems: 'center',
         }}
       >
-        <StatusBadge label={getStatusLabel(goal.status)} color={getStatusColor(goal.status)} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <StatusBadge label={getStatusLabel(goal.status)} color={getStatusColor(goal.status)} />
+          {goal.classification !== 'normal' && (() => {
+            const cls = CLASSIFICATION_STYLE[goal.classification];
+            const ClsIcon = cls.icon!;
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, color: cls.color, padding: '2px 6px', borderRadius: 4, background: `${cls.color}14` }}>
+                <ClsIcon size={10} /> {cls.label}
+              </span>
+            );
+          })()}
+        </div>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           {doneTasks}/{totalTasks} tasks
         </span>

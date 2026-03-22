@@ -1,11 +1,48 @@
 import { GlassCard } from '../components/ui';
-import { Shield } from 'lucide-react';
+import { Shield, Clock, XCircle } from 'lucide-react';
 
 interface LoginPageProps {
   onConnect: () => void;
+  /** If set, the user connected but their membership is pending/rejected */
+  memberStatus?: 'pending' | 'rejected' | null;
 }
 
-export function LoginPage({ onConnect }: LoginPageProps) {
+export function LoginPage({ onConnect, memberStatus }: LoginPageProps) {
+  if (memberStatus === 'pending') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+        <GlassCard style={{ width: 400, maxWidth: '90vw', textAlign: 'center', padding: '48px 36px', backdropFilter: 'blur(16px)', background: 'var(--bg-glass)', border: '1px solid var(--border-accent)', boxShadow: 'var(--shadow-glow)' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', background: 'rgba(234,179,8,0.1)', border: '2px solid #eab308' }}>
+            <Clock size={30} color="#eab308" />
+          </div>
+          <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Awaiting Approval</h1>
+          <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Your membership request has been submitted. A tribe leader or officer will review it shortly.
+          </p>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>
+            Contact your tribe leadership on Discord if this takes too long.
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  if (memberStatus === 'rejected') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+        <GlassCard style={{ width: 400, maxWidth: '90vw', textAlign: 'center', padding: '48px 36px', backdropFilter: 'blur(16px)', background: 'var(--bg-glass)', border: '1px solid var(--border-accent)', boxShadow: 'var(--shadow-glow)' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', background: 'rgba(239,68,68,0.1)', border: '2px solid #ef4444' }}>
+            <XCircle size={30} color="#ef4444" />
+          </div>
+          <h1 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>Access Denied</h1>
+          <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Your membership request was not approved. Reach out to tribe leadership for details.
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{

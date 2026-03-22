@@ -1,6 +1,7 @@
 import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
-import { Shield, Star, User } from 'lucide-react';
+import { Shield, Star, User, Zap, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react';
+import type { MemberClearance } from '../types';
 
 const roleConfig = {
   leader: { label: 'Leader', icon: Shield, color: 'var(--accent-amber)' },
@@ -8,8 +9,33 @@ const roleConfig = {
   member: { label: 'Member', icon: User, color: 'var(--text-muted)' },
 } as const;
 
+const clearanceColors: Record<MemberClearance, string> = {
+  pending: '#6b7280',
+  member: '#22d3ee',
+  officer: '#6366f1',
+  leader: '#f59e0b',
+};
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return 'just now';
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export function MembersPage() {
-  const { members, tribe } = useAppStore();
+  const { members, tribe, currentMember, approveMember, rejectMember, systems } = useAppStore();
+  const me = currentMember();
+  const canManage = me?.clearance === 'leader' || me?.clearance === 'officer';
+
+  const approved = members.filter((m) => m.status === 'approved');
+  const pending = members.filter((m) => m.status === 'pending');
+
+  const getSystemName = (id?: string) => {
+    if (!id) return null;
+    return systems.find((s) => s.id === id)?.name ?? id;
+  };
 
   return (
     <div style={{ padding: '28px 24px', maxWidth: 800, margin: '0 auto' }}>
@@ -17,57 +43,129 @@ export function MembersPage() {
         Members
       </h1>
       <p style={{ margin: '0 0 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-        {tribe?.name} — {members.length} members
+        {tribe?.name} — {approved.length} active member{approved.length !== 1 ? 's' : ''}
+        {pending.length > 0 && ` · ${pending.length} pending`}
       </p>
 
+      {/* Pending approval section */}
+      {canManage && pending.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#eab308', marginBottom: 10 }}>
+            Pending Approval ({pending.length})
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pending.map((m) => (
+              <GlassCard key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, borderColor: '#eab30830' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.25)' }}>
+                  <User size={16} color="#eab308" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {m.profile?.notes ?? 'No info provided'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => approveMember(m.id)}
+                  style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#22c55e20', color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <CheckCircle size={13} /> Approve
+                </button>
+                <button
+                  onClick={() => rejectMember(m.id)}
+                  style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#ef444420', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <XCircle size={13} /> Reject
+                </button>
+              </GlassCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Approved members */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {members.map((m) => {
+        {approved.map((m) => {
           const cfg = roleConfig[m.role];
           const Icon = cfg.icon;
+          const sys = getSystemName(m.profile?.baseSystem);
           return (
             <GlassCard
               key={m.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: 16,
-              }}
+              style={{ padding: 16 }}
             >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${cfg.color} 25%, transparent)`,
-                }}
-              >
-                <Icon size={18} color={cfg.color} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {m.address.slice(0, 10)}…{m.address.slice(-4)}
+              {/* Top row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: m.profile ? 10 : 0 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+                  }}
+                >
+                  <Icon size={18} color={cfg.color} />
                 </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {m.reputation ? `Score: ${m.reputation.score}` : 'No activity yet'}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-xl)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    color: cfg.color,
+                    background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${cfg.color} 20%, transparent)`,
+                  }}
+                >
+                  {cfg.label}
+                </span>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: clearanceColors[m.clearance],
+                    background: `${clearanceColors[m.clearance]}14`,
+                  }}
+                >
+                  {m.clearance}
+                </span>
               </div>
-              <span
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: 'var(--radius-xl)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  color: cfg.color,
-                  background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${cfg.color} 20%, transparent)`,
-                }}
-              >
-                {cfg.label}
-              </span>
+
+              {/* Profile info row */}
+              {m.profile && (
+                <div style={{ display: 'flex', gap: 18, fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 54 }}>
+                  {sys && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <MapPin size={12} color="var(--text-muted)" /> {sys}
+                    </span>
+                  )}
+                  {m.profile.baseEnergy != null && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#22d3ee' }}>
+                      <Zap size={12} /> {m.profile.baseEnergy.toLocaleString()}
+                    </span>
+                  )}
+                  {m.profile.lastActive && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={12} color="var(--text-muted)" /> {timeAgo(m.profile.lastActive)}
+                    </span>
+                  )}
+                </div>
+              )}
             </GlassCard>
           );
         })}

@@ -1,4 +1,4 @@
-import type { Goal, Tribe, TribeMember, TimelineEvent } from '../types';
+import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem } from '../types';
 
 export const MOCK_TRIBE: Tribe = {
   id: 'tribe-alpha',
@@ -9,22 +9,117 @@ export const MOCK_TRIBE: Tribe = {
   createdAt: '2026-03-15T00:00:00Z',
 };
 
+/* ── Systems Database ── */
+
+export const MOCK_SYSTEMS: TribeSystem[] = [
+  {
+    id: 'SOL-001',
+    name: 'Sol Alpha',
+    category: 'core',
+    controlledBy: 'Tribe Alpha',
+    resources: ['Foam', 'Alloy'],
+    threatLevel: 2,
+    notes: 'Our home system. Main base cluster here.',
+    bases: [
+      { memberName: 'Commander Zara', energy: 4200 },
+      { memberName: 'Navigator Rex', energy: 3100 },
+    ],
+    lastScouted: '2026-03-22T08:00:00Z',
+  },
+  {
+    id: 'ARC-005',
+    name: 'Arcadia Five',
+    category: 'core',
+    controlledBy: 'Tribe Alpha',
+    resources: ['Foam'],
+    threatLevel: 3,
+    bases: [
+      { memberName: 'Engineer Kael', energy: 1800 },
+    ],
+    lastScouted: '2026-03-21T14:00:00Z',
+  },
+  {
+    id: 'NEB-012',
+    name: 'Nebula Core',
+    category: 'expansion',
+    resources: ['Foam', 'Alloy', 'Crystal'],
+    threatLevel: 5,
+    notes: 'Resource-rich, planning depot here. Some hostile activity spotted.',
+    dangers: ['Pirate scouts reported 2026-03-20'],
+    lastScouted: '2026-03-20T11:00:00Z',
+  },
+  {
+    id: 'VEX-003',
+    name: 'Vexus Reach',
+    category: 'frontline',
+    threatLevel: 7,
+    notes: 'Border system. Iron Wolves have been spotted here.',
+    dangers: ['Iron Wolves raiding party', 'Unstable rift activity'],
+    riftSightings: [
+      { id: 'rift-1', systemId: 'VEX-003', reportedBy: 'Scout Lyra', timestamp: '2026-03-19T22:00:00Z', type: 'Type-B', notes: 'Appeared near planet 3, lasted ~2h' },
+      { id: 'rift-2', systemId: 'VEX-003', reportedBy: 'Navigator Rex', timestamp: '2026-03-21T04:00:00Z', type: 'Type-B', notes: 'Same location as previous sighting' },
+    ],
+    lastScouted: '2026-03-21T04:00:00Z',
+  },
+  {
+    id: 'DRF-008',
+    name: 'Drift End',
+    category: 'contested',
+    controlledBy: 'Disputed',
+    threatLevel: 8,
+    resources: ['Crystal'],
+    notes: 'Valuable crystal deposits. Multiple tribes fighting for control.',
+    dangers: ['Iron Wolves main fleet', 'Void Syndicate scouts'],
+    lastScouted: '2026-03-18T09:00:00Z',
+  },
+  {
+    id: 'RES-017',
+    name: 'Resara Deep',
+    category: 'resource',
+    resources: ['Alloy', 'Crystal', 'Polymer'],
+    threatLevel: 4,
+    notes: 'Major resource node. Worth securing.',
+    lastScouted: '2026-03-19T16:00:00Z',
+  },
+  {
+    id: 'EC7-DLJ',
+    name: 'EC7-DLJ',
+    category: 'unknown',
+    threatLevel: 6,
+    riftSightings: [
+      { id: 'rift-3', systemId: 'EC7-DLJ', reportedBy: 'Scout Lyra', timestamp: '2026-03-22T01:00:00Z', type: 'Type-A', notes: 'Large rift, unknown contents' },
+    ],
+    notes: 'Uncharted. Rift activity detected. Needs scouting.',
+    lastScouted: '2026-03-22T01:00:00Z',
+  },
+];
+
+/* ── Members ── */
+
 export const MOCK_MEMBERS: TribeMember[] = [
   {
-    id: 'm1', address: '0xalpha_leader_address', name: 'Commander Zara', role: 'leader', joinedAt: '2026-03-15T00:00:00Z',
+    id: 'm1', address: '0xalpha_leader_address', name: 'Commander Zara', role: 'leader', status: 'approved', clearance: 'leader', joinedAt: '2026-03-15T00:00:00Z',
     reputation: { totalPledges: 8, deliveredOnTime: 7, deliveredLate: 1, failedPledges: 0, score: 94 },
+    profile: { baseSystem: 'SOL-001', baseEnergy: 4200, lastActive: '2026-03-22T07:30:00Z' },
   },
   {
-    id: 'm2', address: '0xplayer_a', name: 'Navigator Rex', role: 'officer', joinedAt: '2026-03-16T00:00:00Z',
+    id: 'm2', address: '0xplayer_a', name: 'Navigator Rex', role: 'officer', status: 'approved', clearance: 'officer', joinedAt: '2026-03-16T00:00:00Z',
     reputation: { totalPledges: 12, deliveredOnTime: 11, deliveredLate: 1, failedPledges: 0, score: 96 },
+    profile: { baseSystem: 'SOL-001', baseEnergy: 3100, lastActive: '2026-03-22T06:15:00Z' },
   },
   {
-    id: 'm3', address: '0xplayer_b', name: 'Engineer Kael', role: 'member', joinedAt: '2026-03-17T00:00:00Z',
+    id: 'm3', address: '0xplayer_b', name: 'Engineer Kael', role: 'member', status: 'approved', clearance: 'member', joinedAt: '2026-03-17T00:00:00Z',
     reputation: { totalPledges: 6, deliveredOnTime: 3, deliveredLate: 2, failedPledges: 1, score: 58 },
+    profile: { baseSystem: 'ARC-005', baseEnergy: 1800, lastActive: '2026-03-21T22:00:00Z' },
   },
   {
-    id: 'm4', address: '0xplayer_c', name: 'Scout Lyra', role: 'member', joinedAt: '2026-03-18T00:00:00Z',
+    id: 'm4', address: '0xplayer_c', name: 'Scout Lyra', role: 'member', status: 'approved', clearance: 'member', joinedAt: '2026-03-18T00:00:00Z',
     reputation: { totalPledges: 4, deliveredOnTime: 4, deliveredLate: 0, failedPledges: 0, score: 100 },
+    profile: { baseSystem: 'VEX-003', baseEnergy: 950, lastActive: '2026-03-22T01:00:00Z', notes: 'Frontline scout. Tracks rift activity.' },
+  },
+  {
+    id: 'm5', address: '0xpending_user', name: 'Recruit Nova', role: 'member', status: 'pending', clearance: 'pending', joinedAt: '2026-03-22T00:00:00Z',
+    profile: { notes: 'Applied via Discord. Claims 2 weeks experience.' },
   },
 ];
 
@@ -43,6 +138,7 @@ export const MOCK_GOALS: Goal[] = [
     tribeId: 'tribe-alpha',
     title: 'Gated Network for Tribe Alpha',
     description: 'Build a network of Smart Gates connecting our core systems, with tribe-only access control.',
+    classification: 'normal',
     status: 'active',
     priority: 'high',
     createdBy: '0xalpha_leader_address',
@@ -104,6 +200,7 @@ export const MOCK_GOALS: Goal[] = [
     tribeId: 'tribe-alpha',
     title: 'Resource Depot at NEB-012',
     description: 'Establish a shared Smart Storage Unit as a community resource depot.',
+    classification: 'classified',
     status: 'planning',
     priority: 'medium',
     createdBy: '0xalpha_leader_address',
@@ -132,6 +229,7 @@ export const MOCK_GOALS: Goal[] = [
     tribeId: 'tribe-alpha',
     title: 'Perimeter Defense Grid',
     description: 'Deploy Smart Turrets around our core territory for defense against hostile tribes.',
+    classification: 'top-secret',
     status: 'completed',
     priority: 'critical',
     createdBy: '0xplayer_a',

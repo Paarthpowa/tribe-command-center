@@ -1,13 +1,36 @@
 /* ── Types ── */
 
+/* ── Access Control ── */
+
+export type MemberClearance = 'pending' | 'member' | 'officer' | 'leader';
+export type GoalClassification = 'normal' | 'classified' | 'top-secret';
+export type MemberStatus = 'pending' | 'approved' | 'rejected';
+
 export interface TribeMember {
   id: string;
   address: string;
   name: string;
   role: 'leader' | 'officer' | 'member';
+  /** Approval status — pending members can't see anything */
+  status: MemberStatus;
+  /** Clearance level — determines which goals are visible */
+  clearance: MemberClearance;
   joinedAt: string;
   /** Reputation stats — computed from contributions */
   reputation?: MemberReputation;
+  /** In-game profile data */
+  profile?: MemberProfile;
+}
+
+export interface MemberProfile {
+  /** System where player's main base is located */
+  baseSystem?: string;
+  /** Base size / energy invested (approximate) */
+  baseEnergy?: number;
+  /** Last time the player was active in-game */
+  lastActive?: string;
+  /** Notes or bio */
+  notes?: string;
 }
 
 export interface MemberReputation {
@@ -19,6 +42,43 @@ export interface MemberReputation {
   score: number;
 }
 
+/* ── Territory & Intel ── */
+
+export type SystemCategory = 'core' | 'frontline' | 'contested' | 'expansion' | 'resource' | 'hostile' | 'unknown';
+
+export interface TribeSystem {
+  id: string;
+  name: string;
+  category: SystemCategory;
+  /** Who controls/claimed this system */
+  controlledBy?: string;
+  /** Known resources available */
+  resources?: string[];
+  /** Threat level 0-10 */
+  threatLevel?: number;
+  /** Notes from scouts */
+  notes?: string;
+  /** Member bases in this system */
+  bases?: { memberName: string; energy?: number }[];
+  /** Known dangers or enemies */
+  dangers?: string[];
+  /** Rift activity log */
+  riftSightings?: RiftSighting[];
+  /** Last scouted timestamp */
+  lastScouted?: string;
+}
+
+export interface RiftSighting {
+  id: string;
+  systemId: string;
+  reportedBy: string;
+  timestamp: string;
+  type?: string;
+  notes?: string;
+}
+
+/* ── Goals & Tasks ── */
+
 export type GoalStatus = 'planning' | 'active' | 'completed' | 'archived';
 export type GoalPriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -29,6 +89,8 @@ export interface Goal {
   description: string;
   status: GoalStatus;
   priority: GoalPriority;
+  /** Visibility classification — who can see this goal */
+  classification: GoalClassification;
   createdBy: string;
   createdAt: string;
   deadline?: string;

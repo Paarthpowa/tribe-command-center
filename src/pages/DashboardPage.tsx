@@ -5,7 +5,8 @@ import { ProgressRing } from '../components/ProgressRing';
 import { Target, CheckCircle, Clock, Users } from 'lucide-react';
 
 export function DashboardPage() {
-  const { goals, tribe, members } = useAppStore();
+  const { tribe, members, visibleGoals } = useAppStore();
+  const goals = visibleGoals();
 
   const totalGoals = goals.length;
   const activeGoals = goals.filter((g) => g.status === 'active').length;
