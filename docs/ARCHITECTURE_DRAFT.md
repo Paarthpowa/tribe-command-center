@@ -145,3 +145,22 @@ contributions (
 - [ ] Is there a World API endpoint for solar system names/coordinates?
 - [ ] How to handle verification of resource delivery? (Manual for MVP)
 - [ ] Supabase Row Level Security policies — scope by tribe_id
+
+## External Integrations
+
+### EF-Map (ef-map.com)
+**What:** Interactive EVE Frontier star map with Smart Gate route planner.
+**How:** Embeddable iframe with full postMessage API for dynamic updates.
+**Used in:**
+- Login page background (cinematic orbit mode)
+- Goal Detail — visualize systems involved, color-coded links by task status
+- Goal creation wizard — select systems on map
+
+**Key capabilities:**
+- `?systems=` — highlight multiple systems with accent rings
+- `?links=systemA-systemB:color` — draw lines between systems (green/yellow/red for status)
+- `?fit=1` — auto-zoom to show all systems
+- `postMessage` API — navigate, highlight, zoom without iframe reload
+- `?performance=1` — lightweight mode for lower GPU usage
+
+See [docs/UI_DESIGN.md](UI_DESIGN.md) for detailed integration plan.
