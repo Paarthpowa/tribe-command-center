@@ -1,0 +1,68 @@
+{
+  // ─────────────────────────────────────────────────────────────────────────
+  // Wrangler Configuration Template (Cloudflare Pages + Workers)
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // USAGE:
+  //   1. Copy this file to your frontend directory as wrangler.jsonc
+  //   2. Replace all {{PLACEHOLDER}} values with actual IDs
+  //   3. Set secrets via: wrangler pages secret put <NAME>
+  //
+  // DOCS: https://developers.cloudflare.com/workers/wrangler/configuration/
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "name": "{{PROJECT_NAME}}",
+  "compatibility_date": "{{COMPATIBILITY_DATE}}",
+  "pages_build_output_dir": "dist",
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // KV Namespace Bindings
+  // Create with: wrangler kv namespace create <NAME>
+  // ─────────────────────────────────────────────────────────────────────────
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "{{KV_NAMESPACE_ID}}"
+    }
+    // Add more KV namespaces as needed:
+    // { "binding": "CACHE_KV", "id": "{{CACHE_KV_NAMESPACE_ID}}" }
+  ],
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // R2 Bucket Bindings (Object Storage — optional)
+  // Create with: wrangler r2 bucket create <NAME>
+  // ─────────────────────────────────────────────────────────────────────────
+  // "r2_buckets": [
+  //   {
+  //     "binding": "MY_BUCKET",
+  //     "bucket_name": "{{R2_BUCKET_NAME}}"
+  //   }
+  // ],
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Durable Objects (optional)
+  // ─────────────────────────────────────────────────────────────────────────
+  // "durable_objects": {
+  //   "bindings": [
+  //     {
+  //       "name": "MY_DO",
+  //       "class_name": "MyDurableObject",
+  //       "script_name": "{{DO_WORKER_SCRIPT}}"
+  //     }
+  //   ]
+  // },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Environment Overrides (preview vs production)
+  // ─────────────────────────────────────────────────────────────────────────
+  "env": {
+    "preview": {
+      "kv_namespaces": [
+        {
+          "binding": "MY_KV",
+          "id": "{{PREVIEW_KV_NAMESPACE_ID}}"
+        }
+      ]
+    }
+  }
+}

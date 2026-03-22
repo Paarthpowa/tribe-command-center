@@ -1,0 +1,62 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // VS Code 1.109+ – Agent & Memory Settings
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Load AGENTS.md as agent context (VS Code 1.104+)
+    "chat.useAgentsMdFile": true,
+
+    // Agent Skills from .github/skills/ (GA in 1.109)
+    "chat.useAgentSkills": true,
+
+    // Copilot Memory – persists context across sessions (1.109+)
+    // See docs/COPILOT_MEMORY_GUIDELINES.md for usage policy
+    "github.copilot.chat.copilotMemory.enabled": true,
+
+    // Search subagent – runs isolated search loops (experimental, 1.109+)
+    "github.copilot.chat.searchSubagent.enabled": true,
+
+    // Organization instructions (enabled by default in 1.109)
+    "github.copilot.chat.organizationInstructions.enabled": true,
+
+    // Always load scaffold instructions for Copilot code generation
+    "github.copilot.chat.codeGeneration.instructions": [
+        { "file": ".github/copilot-instructions.md" }
+    ],
+
+    // Terminal tool behavior for agents:
+    // - Keep general auto-approve OFF for safety (sensitive commands need confirmation)
+    // - Auto-approve npm/pnpm/yarn scripts from package.json (safe workspace scripts)
+    // - Prevent agent commands from polluting shell history
+    "chat.tools.terminal.enableAutoApprove": false,
+    "chat.tools.terminal.autoApproveWorkspaceNpmScripts": true,
+    "chat.tools.terminal.preventShellHistory": true,
+
+    // Suggest custom prompt files in the Chat welcome view
+    "chat.promptFilesRecommendations": {
+        "plan": true
+    },
+
+    // Chat / UI ergonomics
+    "workbench.secondarySideBar.defaultVisibility": "visible",
+    "chat.math.enabled": true,
+    "chat.agent.maxRequests": 100,
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Git Settings
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Ignore whitespace in blame (helpful for files with formatting changes)
+    "git.blame.ignoreWhitespace": true,
+
+    // Worktrees view in Source Control
+    "scm.repositories.explorer": true
+}

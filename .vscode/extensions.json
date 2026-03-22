@@ -1,0 +1,31 @@
+{
+  // ─────────────────────────────────────────────────────────────────────────
+  // Workspace – Recommended Extensions
+  // Updated for VS Code 1.109 (Jan 2026)
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // Note: VS Code 1.109 deprecated the standalone "GitHub Copilot" extension.
+  // All AI functionality is now in "GitHub Copilot Chat" which is listed below.
+
+  "recommendations": [
+    // ─────────────────────────────────────────────────────────────────────────
+    // AI & Copilot (required for agentic workflows)
+    // ─────────────────────────────────────────────────────────────────────────
+    "GitHub.copilot-chat",
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Developer Tools (add project-specific extensions below)
+    // ─────────────────────────────────────────────────────────────────────────
+    "humao.rest-client",
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GitHub Integration
+    // ─────────────────────────────────────────────────────────────────────────
+    "GitHub.vscode-pull-request-github"
+  ],
+
+  "unwantedRecommendations": [
+    // The standalone Copilot extension is deprecated as of VS Code 1.109
+    "GitHub.copilot"
+  ]
+}

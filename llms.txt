@@ -1,0 +1,13 @@
+# {{PROJECT_NAME}} — Documentation Map
+
+> **Note to Agents**: This file serves as a high-level map to the most important documentation in this repository.
+> For agent guardrails, see `.github/copilot-instructions.md` and `AGENTS.md`.
+
+## Critical Entry Points
+- **Agent Rules**: `.github/copilot-instructions.md` (MUST READ)
+- **Agent Context**: `AGENTS.md` (MUST READ)
+- **Security**: `.github/security-guidelines.md`
+
+## Key Documentation
+- **Architecture**: (add your architecture docs here)
+- **Decision Log**: `docs/decision-log.md`
