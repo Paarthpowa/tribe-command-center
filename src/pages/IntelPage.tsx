@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { GlassCard } from '../components/ui';
 import { StarMap } from '../components/StarMap';
+import { SystemPicker } from '../components/SystemPicker';
+import { SystemDetailPanel } from '../components/SystemDetailPanel';
 import { useAppStore } from '../stores/appStore';
 import type { TribeSystem, SystemCategory } from '../types';
 import {
@@ -16,6 +18,9 @@ import {
   Zap,
   ChevronDown,
   ChevronRight,
+  Plus,
+  Star,
+  Trash2,
 } from 'lucide-react';
 
 const CATEGORY_CONFIG: Record<SystemCategory, { label: string; color: string; icon: typeof Globe }> = {
@@ -41,7 +46,15 @@ function ThreatBar({ level }: { level: number }) {
   );
 }
 
-function SystemCard({ system }: { system: TribeSystem }) {
+function SystemCard({
+  system,
+  onSetHQ,
+  onUnclaim,
+}: {
+  system: TribeSystem;
+  onSetHQ?: (id: number) => void;
+  onUnclaim?: (id: number) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const cat = CATEGORY_CONFIG[system.category];
   const Icon = cat.icon;
@@ -51,7 +64,7 @@ function SystemCard({ system }: { system: TribeSystem }) {
       style={{
         padding: '16px 20px',
         background: 'var(--bg-card)',
-        border: `1px solid ${cat.color}30`,
+        border: `1px solid ${system.isHQ ? '#fbbf2440' : `${cat.color}30`}`,
         cursor: 'pointer',
         transition: 'border-color 0.2s',
       }}
@@ -60,7 +73,12 @@ function SystemCard({ system }: { system: TribeSystem }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <Icon size={18} color={cat.color} />
-        <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>{system.name}</span>
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+          {system.name}
+          {system.isHQ && (
+            <span style={{ color: '#fbbf24', marginLeft: 6, fontSize: 14 }}>{'\u2605'}</span>
+          )}
+        </span>
         <span
           style={{
             fontSize: 10,
@@ -158,6 +176,58 @@ function SystemCard({ system }: { system: TribeSystem }) {
               Last scouted: {new Date(system.lastScouted).toLocaleDateString()}
             </div>
           )}
+
+          {/* Scouting logs */}
+          {system.scoutingLogs && system.scoutingLogs.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>SCOUTING LOG</div>
+              {system.scoutingLogs.map((log) => (
+                <div key={log.id} style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '2px 0', borderLeft: `2px solid ${log.foundEnemy ? '#ef444440' : '#22c55e40'}`, paddingLeft: 8, marginBottom: 4 }}>
+                  <div style={{ fontWeight: 500 }}>
+                    {log.reportedBy}
+                    {log.lPoint && <span style={{ color: 'var(--text-muted)' }}> @ {log.lPoint}</span>}
+                    {log.foundEnemy && <span style={{ color: '#ef4444', marginLeft: 6 }}>ENEMY FOUND</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {new Date(log.timestamp).toLocaleDateString()} &middot; {log.notes}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            {!system.isHQ && onSetHQ && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSetHQ(system.id); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 6,
+                  border: '1px solid rgba(251,191,36,0.3)',
+                  background: 'rgba(251,191,36,0.08)',
+                  color: '#fbbf24', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                }}
+              >
+                <Star size={12} /> Set HQ
+              </button>
+            )}
+            {onUnclaim && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onUnclaim(system.id); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 6,
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  background: 'rgba(239,68,68,0.08)',
+                  color: '#ef4444', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                  marginLeft: 'auto',
+                }}
+              >
+                <Trash2 size={12} /> Unclaim
+              </button>
+            )}
+          </div>
         </div>
       )}
     </GlassCard>
@@ -165,9 +235,15 @@ function SystemCard({ system }: { system: TribeSystem }) {
 }
 
 export function IntelPage() {
-  const { systems, goals } = useAppStore();
+  const { systems, goals, worldSystems, claimSystem, unclaimSystem, setHQ } = useAppStore();
   const [filter, setFilter] = useState<SystemCategory | 'all'>('all');
-  const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
+  const [selectedSystem, setSelectedSystem] = useState<number | null>(null);
+  const [showClaim, setShowClaim] = useState(false);
+  const [detailSystemId, setDetailSystemId] = useState<number | null>(null);
+
+  const claimedIds = useMemo(() => new Set(systems.map((s) => s.id)), [systems]);
+
+  const detailSystem = detailSystemId != null ? systems.find(s => s.id === detailSystemId) : null;
 
   const filtered = selectedSystem
     ? systems.filter((s) => s.id === selectedSystem)
@@ -179,15 +255,63 @@ export function IntelPage() {
   const totalRifts = systems.reduce((acc, s) => acc + (s.riftSightings?.length ?? 0), 0);
   const highThreat = systems.filter((s) => (s.threatLevel ?? 0) >= 7).length;
   const totalBases = systems.reduce((acc, s) => acc + (s.bases?.length ?? 0), 0);
+  const hqSystem = systems.find((s) => s.isHQ);
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px 64px' }}>
-      <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>
-        Intel & Territory
-      </h1>
-      <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
+          Intel & Territory
+        </h1>
+        <button
+          onClick={() => setShowClaim(!showClaim)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            borderRadius: 8,
+            border: '1px solid rgba(99,102,241,0.3)',
+            background: showClaim ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
+            color: '#818cf8',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          <Plus size={14} /> Claim System
+        </button>
+      </div>
+      <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-secondary)' }}>
         Strategic overview of known systems, threats, and rift activity.
+        {hqSystem && (
+          <span style={{ color: '#fbbf24', marginLeft: 8 }}>
+            {'\u2605'} HQ: {hqSystem.name}
+          </span>
+        )}
       </p>
+
+      {/* Claim System Panel */}
+      {showClaim && (
+        <GlassCard style={{ padding: '16px 20px', marginBottom: 16, background: 'var(--bg-card)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+            Claim a System
+          </div>
+          <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+            Search for a system from the world atlas to add to your territory.
+          </p>
+          <SystemPicker
+            systems={worldSystems}
+            claimedIds={claimedIds}
+            onSelect={(ws) => {
+              claimSystem(ws);
+              setShowClaim(false);
+              setSelectedSystem(ws.id);
+            }}
+            placeholder="Search world systems by name..."
+          />
+        </GlassCard>
+      )}
 
       {/* Star Map */}
       <div style={{ marginBottom: 24 }}>
@@ -197,6 +321,7 @@ export function IntelPage() {
           highlightSystemIds={selectedSystem ? [selectedSystem] : undefined}
           onSystemClick={(sys) => {
             setSelectedSystem(sys.id === selectedSystem ? null : sys.id);
+            setDetailSystemId(sys.id);
             setFilter('all');
           }}
           height={420}
@@ -229,12 +354,22 @@ export function IntelPage() {
       {/* System cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtered.map((s) => (
-          <SystemCard key={s.id} system={s} />
+          <div key={s.id} onClick={() => setDetailSystemId(s.id)} style={{ cursor: 'pointer' }}>
+            <SystemCard system={s} onSetHQ={setHQ} onUnclaim={unclaimSystem} />
+          </div>
         ))}
         {filtered.length === 0 && (
           <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No systems in this category.</p>
         )}
       </div>
+
+      {/* System Detail Panel */}
+      {detailSystem && (
+        <SystemDetailPanel
+          system={detailSystem}
+          onClose={() => setDetailSystemId(null)}
+        />
+      )}
     </div>
   );
 }

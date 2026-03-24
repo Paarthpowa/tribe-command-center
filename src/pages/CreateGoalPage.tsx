@@ -357,7 +357,7 @@ export function CreateGoalPage() {
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, marginBottom: 6 }}>
                     <input
                       style={inputStyle}
-                      placeholder="Resource (e.g. Foam)"
+                      placeholder="Resource (e.g. Building Foam)"
                       value={req.resource}
                       onChange={(e) => updateAutoGenReq(i, 'resource', e.target.value)}
                     />
@@ -435,7 +435,7 @@ export function CreateGoalPage() {
                       <div key={ri} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, marginBottom: 6 }}>
                         <input
                           style={inputStyle}
-                          placeholder="Resource (e.g. Foam)"
+                          placeholder="Resource (e.g. Building Foam)"
                           value={req.resource}
                           onChange={(e) => updateManualRequirement(i, ri, 'resource', e.target.value)}
                         />

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fetch:systems": "npx tsx scripts/fetch-systems.ts"
   },
   "dependencies": {
     "@evefrontier/dapp-kit": "^0.1.7",

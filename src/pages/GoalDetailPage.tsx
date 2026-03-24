@@ -110,7 +110,7 @@ export function GoalDetailPage() {
             {allSystems.length > 0 && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--accent-cyan)' }}>
                 <MapPin size={12} />
-                {allSystems.join(', ')}
+                {allSystems.map((id) => systems.find((s) => s.id === id)?.name ?? String(id)).join(', ')}
               </span>
             )}
           </div>

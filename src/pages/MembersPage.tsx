@@ -32,9 +32,9 @@ export function MembersPage() {
   const approved = members.filter((m) => m.status === 'approved');
   const pending = members.filter((m) => m.status === 'pending');
 
-  const getSystemName = (id?: string) => {
+  const getSystemName = (id?: number) => {
     if (!id) return null;
-    return systems.find((s) => s.id === id)?.name ?? id;
+    return systems.find((s) => s.id === id)?.name ?? String(id);
   };
 
   return (

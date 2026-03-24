@@ -23,10 +23,12 @@ export interface TribeMember {
 }
 
 export interface MemberProfile {
-  /** System where player's main base is located */
-  baseSystem?: string;
+  /** System where player's main base is located (numeric World API ID) */
+  baseSystem?: number;
   /** Base size / energy invested (approximate) */
   baseEnergy?: number;
+  /** L-point identifier where the base sits */
+  baseLPoint?: string;
   /** Last time the player was active in-game */
   lastActive?: string;
   /** Notes or bio */
@@ -42,20 +44,37 @@ export interface MemberReputation {
   score: number;
 }
 
+/* ── World Systems (from API bundle) ── */
+
+/** Raw system data from the World API bundle — immutable reference data */
+export interface WorldSystem {
+  id: number;
+  name: string;
+  constellationId: number;
+  regionId: number;
+  /** Normalized 2D coordinate (0-1000 range) */
+  x: number;
+  /** Normalized 2D coordinate (0-1000 range) */
+  y: number;
+}
+
 /* ── Territory & Intel ── */
 
 export type SystemCategory = 'core' | 'frontline' | 'contested' | 'expansion' | 'resource' | 'hostile' | 'unknown';
 
+/** Tribe's overlay data for a claimed system — references a WorldSystem by ID */
 export interface TribeSystem {
-  id: string;
+  /** World API system ID (numeric) */
+  id: number;
+  /** System name (from WorldSystem) */
   name: string;
   category: SystemCategory;
-  /** 2D map coordinates for custom star map */
+  /** 2D map coordinates (from WorldSystem bundle) */
   coordinates: { x: number; y: number };
   /** Who controls/claimed this system */
   controlledBy?: string;
   /** Connected system IDs (gate links) */
-  connections?: string[];
+  connections?: number[];
   /** Known resources available */
   resources?: string[];
   /** Threat level 0-10 */
@@ -63,18 +82,65 @@ export interface TribeSystem {
   /** Notes from scouts */
   notes?: string;
   /** Member bases in this system */
-  bases?: { memberName: string; energy?: number }[];
+  bases?: TribeBase[];
   /** Known dangers or enemies */
   dangers?: string[];
   /** Rift activity log */
   riftSightings?: RiftSighting[];
+  /** Scouting log entries */
+  scoutingLogs?: ScoutingLog[];
   /** Last scouted timestamp */
   lastScouted?: string;
+  /** Is this the tribe's HQ system? */
+  isHQ?: boolean;
+  /** Known Lagrange points with scouting status */
+  lagrangePoints?: LagrangePoint[];
+}
+
+/** Lagrange point identifier — locations where Network Nodes can be anchored to establish bases */
+export type LPointId = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+
+/** Lagrange point status — each L-point can host a base (Network Node + Smart Assemblies) */
+export interface LagrangePoint {
+  lPoint: LPointId;
+  /** What's known about this Lagrange point */
+  status: 'unknown' | 'empty' | 'friendly' | 'enemy' | 'contested' | 'resource';
+  /** Who has a base (Network Node) here */
+  occupiedBy?: string;
+  /** Resources or items found here */
+  resources?: string[];
+  /** Notes from scouts */
+  notes?: string;
+  /** Last time this L-point was scouted */
+  lastScouted?: string;
+}
+
+export interface TribeBase {
+  memberId?: string;
+  memberName: string;
+  /** Energy from Network Node (GJ) */
+  energy?: number;
+  /** Lagrange point where the Network Node is anchored */
+  lPoint?: LPointId;
+  /** Is this an enemy base? */
+  isEnemy?: boolean;
+}
+
+export interface ScoutingLog {
+  id: string;
+  systemId: number;
+  reportedBy: string;
+  timestamp: string;
+  /** Specific L-point scouted */
+  lPoint?: LPointId;
+  notes?: string;
+  /** Was an enemy base found? */
+  foundEnemy?: boolean;
 }
 
 export interface RiftSighting {
   id: string;
-  systemId: string;
+  systemId: number;
   reportedBy: string;
   timestamp: string;
   type?: string;
@@ -85,6 +151,7 @@ export interface RiftSighting {
 
 export type GoalStatus = 'planning' | 'active' | 'completed' | 'archived';
 export type GoalPriority = 'low' | 'medium' | 'high' | 'critical';
+export type TaskType = 'deployment' | 'scouting' | 'resource' | 'defense' | 'logistics' | 'programming' | 'diplomacy' | 'other';
 
 export interface Goal {
   id: string;
@@ -99,8 +166,8 @@ export interface Goal {
   createdAt: string;
   deadline?: string;
   tasks: Task[];
-  /** Solar system IDs related to this goal (for EF-Map) */
-  systemIds?: string[];
+  /** Solar system IDs related to this goal */
+  systemIds?: number[];
   /** Shared EF-Map route URL (e.g. https://ef-map.com/s/abc123) */
   mapShareUrl?: string;
   /** Timeline events */
@@ -123,11 +190,13 @@ export interface Task {
   title: string;
   description: string;
   status: TaskStatus;
+  /** Task category */
+  taskType?: TaskType;
   assignedTo?: string;
   /** e.g. "Smart Gate", "Smart Storage Unit" */
   assemblyType?: string;
   /** Solar system where this task takes place */
-  systemId?: string;
+  systemId?: number;
   systemName?: string;
   /** Sub-task index (e.g. "Gate 1 of 5") */
   subIndex?: number;

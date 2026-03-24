@@ -20,7 +20,6 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/* ── Seeded random for deterministic stars ── */
 function seededRandom(seed: number) {
   let s = seed;
   return () => {
@@ -31,10 +30,9 @@ function seededRandom(seed: number) {
 
 interface StarMapProps {
   systems: TribeSystem[];
-  /** Goals to show as markers on relevant systems */
   goals?: Goal[];
-  /** System IDs to highlight (e.g. for a specific goal) */
-  highlightSystemIds?: string[];
+  /** System IDs to highlight (numeric) */
+  highlightSystemIds?: number[];
   /** Called when a system node is clicked */
   onSystemClick?: (system: TribeSystem) => void;
   /** Height of the canvas */
@@ -51,43 +49,49 @@ export function StarMap({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Camera state
+  /* Camera: state drives rendering, ref provides fresh values in callbacks */
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
-  const [dragging, setDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const cameraRef = useRef(camera);
+  cameraRef.current = camera;
+
+  /* Drag state lives entirely in refs — eliminates stale-closure panning bugs */
+  const dragRef = useRef<{
+    mouseX: number;
+    mouseY: number;
+    camX: number;
+    camY: number;
+  } | null>(null);
+  const dragDist = useRef(0);
+
   const [hovered, setHovered] = useState<TribeSystem | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [, setTick] = useState(0);
 
-  // World-to-screen coordinate transform
+  /* World → screen coordinate transform */
   const toScreen = useCallback(
-    (wx: number, wy: number, w: number) => {
-      const cx = w / 2;
-      const cy = height / 2;
-      return {
-        sx: (wx + camera.x) * camera.zoom + cx,
-        sy: (wy + camera.y) * camera.zoom + cy,
-      };
-    },
+    (wx: number, wy: number, w: number) => ({
+      sx: (wx + camera.x) * camera.zoom + w / 2,
+      sy: (wy + camera.y) * camera.zoom + height / 2,
+    }),
     [camera, height],
   );
 
-  // Background stars (generated once)
+  /* Background stars (deterministic, generated once) */
   const bgStars = useRef<{ x: number; y: number; r: number; b: number }[]>([]);
   if (bgStars.current.length === 0) {
     const rng = seededRandom(42);
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 400; i++) {
       bgStars.current.push({
-        x: rng() * 1600 - 400,
-        y: rng() * 1200 - 300,
+        x: rng() * 2000 - 500,
+        y: rng() * 1500 - 300,
         r: rng() * 1.2 + 0.3,
         b: rng() * 0.5 + 0.15,
       });
     }
   }
 
-  // Build a map of systemId -> goals
-  const systemGoals = new Map<string, Goal[]>();
+  /* System → goals lookup */
+  const systemGoals = new Map<number, Goal[]>();
   goals.forEach((g) => {
     g.systemIds?.forEach((sid) => {
       const list = systemGoals.get(sid) ?? [];
@@ -96,8 +100,17 @@ export function StarMap({
     });
   });
 
-  // Systems lookup
   const systemMap = new Map(systems.map((s) => [s.id, s]));
+
+  /* ── Animation tick (~15 fps, only when needed) ── */
+  const hasAnimations = systems.some(
+    (s) => (s.riftSightings?.length ?? 0) > 0 || s.isHQ,
+  );
+  useEffect(() => {
+    if (!hasAnimations) return;
+    const id = setInterval(() => setTick((t) => t + 1), 66);
+    return () => clearInterval(id);
+  }, [hasAnimations]);
 
   /* ── Drawing ── */
   useEffect(() => {
@@ -113,85 +126,108 @@ export function StarMap({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    // Background
-    const bgGrad = ctx.createRadialGradient(w / (2 * dpr), h / (2 * dpr), 0, w / (2 * dpr), h / (2 * dpr), Math.max(w, h) / (1.5 * dpr));
+    const realW = w / dpr;
+    const realH = h / dpr;
+
+    /* Background */
+    const bgGrad = ctx.createRadialGradient(
+      realW / 2, realH / 2, 0,
+      realW / 2, realH / 2, Math.max(realW, realH) / 1.5,
+    );
     bgGrad.addColorStop(0, '#0c0e1a');
     bgGrad.addColorStop(1, '#060810');
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, w / dpr, h / dpr);
+    ctx.fillRect(0, 0, realW, realH);
 
-    const realW = w / dpr;
+    /* Frustum culling bounds (world-space) with margin */
+    const margin = 80 / camera.zoom;
+    const vL = -camera.x - realW / (2 * camera.zoom) - margin;
+    const vR = -camera.x + realW / (2 * camera.zoom) + margin;
+    const vT = -camera.y - realH / (2 * camera.zoom) - margin;
+    const vB = -camera.y + realH / (2 * camera.zoom) + margin;
+    const vis = (wx: number, wy: number) =>
+      wx >= vL && wx <= vR && wy >= vT && wy <= vB;
 
-    // Background stars
+    /* Background stars */
     bgStars.current.forEach((star) => {
+      if (!vis(star.x, star.y)) return;
       const { sx, sy } = toScreen(star.x, star.y, realW);
-      if (sx < -10 || sx > realW + 10 || sy < -10 || sy > h / dpr + 10) return;
       ctx.beginPath();
       ctx.arc(sx, sy, star.r * camera.zoom * 0.7, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(180,190,220,${star.b})`;
       ctx.fill();
     });
 
-    // Grid dots (subtle)
-    ctx.fillStyle = 'rgba(100,120,160,0.06)';
-    const gridStep = 50;
-    for (let gx = -400; gx < 1200; gx += gridStep) {
-      for (let gy = -200; gy < 800; gy += gridStep) {
-        const { sx, sy } = toScreen(gx, gy, realW);
-        if (sx < 0 || sx > realW || sy < 0 || sy > h / dpr) continue;
-        ctx.beginPath();
-        ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
-        ctx.fill();
+    /* Grid dots — skip at very low zoom */
+    if (camera.zoom >= 0.5) {
+      ctx.fillStyle = 'rgba(100,120,160,0.06)';
+      const step = 50;
+      const gx0 = Math.floor(vL / step) * step;
+      const gy0 = Math.floor(vT / step) * step;
+      for (let gx = gx0; gx <= vR; gx += step) {
+        for (let gy = gy0; gy <= vB; gy += step) {
+          const { sx, sy } = toScreen(gx, gy, realW);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
 
-    // Connection lines
-    const drawnLinks = new Set<string>();
+    /* Connection lines */
+    const drawn = new Set<string>();
     systems.forEach((sys) => {
-      sys.connections?.forEach((targetId) => {
-        const linkKey = [sys.id, targetId].sort().join('-');
-        if (drawnLinks.has(linkKey)) return;
-        drawnLinks.add(linkKey);
+      sys.connections?.forEach((tid) => {
+        const key = sys.id < tid ? `${sys.id}-${tid}` : `${tid}-${sys.id}`;
+        if (drawn.has(key)) return;
+        drawn.add(key);
 
-        const target = systemMap.get(targetId);
+        const target = systemMap.get(tid);
         if (!target) return;
+
+        // Skip if both endpoints off-screen
+        if (
+          !vis(sys.coordinates.x, sys.coordinates.y) &&
+          !vis(target.coordinates.x, target.coordinates.y)
+        ) return;
 
         const from = toScreen(sys.coordinates.x, sys.coordinates.y, realW);
         const to = toScreen(target.coordinates.x, target.coordinates.y, realW);
 
-        const isHighlighted =
-          highlightSystemIds &&
-          highlightSystemIds.includes(sys.id) &&
-          highlightSystemIds.includes(targetId);
+        const hl =
+          highlightSystemIds?.includes(sys.id) &&
+          highlightSystemIds?.includes(tid);
 
         ctx.beginPath();
         ctx.moveTo(from.sx, from.sy);
         ctx.lineTo(to.sx, to.sy);
-        ctx.strokeStyle = isHighlighted
+        ctx.strokeStyle = hl
           ? 'rgba(99,102,241,0.5)'
           : 'rgba(100,120,160,0.12)';
-        ctx.lineWidth = isHighlighted ? 2 : 1;
-        ctx.setLineDash(isHighlighted ? [] : [4, 4]);
+        ctx.lineWidth = hl ? 2 : 1;
+        ctx.setLineDash(hl ? [] : [4, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
       });
     });
 
-    // Highlight territory fill (convex hull area for core systems)
-    const coreSystems = systems.filter((s) => s.category === 'core');
-    if (coreSystems.length >= 2) {
+    /* Territory fill — core systems */
+    const cores = systems.filter((s) => s.category === 'core');
+    if (cores.length >= 2) {
+      const pad = 50 * camera.zoom;
       ctx.beginPath();
-      coreSystems.forEach((s, i) => {
+      cores.forEach((s, i) => {
         const { sx, sy } = toScreen(s.coordinates.x, s.coordinates.y, realW);
-        const padding = 40 * camera.zoom;
-        if (i === 0) ctx.moveTo(sx, sy - padding);
-        else ctx.lineTo(sx, sy - padding);
+        i === 0 ? ctx.moveTo(sx, sy - pad) : ctx.lineTo(sx, sy - pad);
       });
-      // Extend territory bubble
-      const last = toScreen(coreSystems[coreSystems.length - 1].coordinates.x, coreSystems[coreSystems.length - 1].coordinates.y, realW);
-      const first = toScreen(coreSystems[0].coordinates.x, coreSystems[0].coordinates.y, realW);
-      ctx.lineTo(last.sx + 40 * camera.zoom, last.sy + 40 * camera.zoom);
-      ctx.lineTo(first.sx - 40 * camera.zoom, first.sy + 40 * camera.zoom);
+      const last = toScreen(
+        cores[cores.length - 1].coordinates.x,
+        cores[cores.length - 1].coordinates.y,
+        realW,
+      );
+      const first = toScreen(cores[0].coordinates.x, cores[0].coordinates.y, realW);
+      ctx.lineTo(last.sx + pad, last.sy + pad);
+      ctx.lineTo(first.sx - pad, first.sy + pad);
       ctx.closePath();
       ctx.fillStyle = 'rgba(34,197,94,0.03)';
       ctx.fill();
@@ -200,103 +236,155 @@ export function StarMap({
       ctx.stroke();
     }
 
-    // System nodes
+    /* ── System nodes ── */
     systems.forEach((sys) => {
+      if (!vis(sys.coordinates.x, sys.coordinates.y)) return;
+
       const color = CATEGORY_COLORS[sys.category];
       const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, realW);
-      const baseRadius = (sys.bases?.length ?? 0) > 0 ? 7 : 5;
-      const r = baseRadius * camera.zoom;
-      const isHovered = hovered?.id === sys.id;
-      const isHighlightedSys = highlightSystemIds?.includes(sys.id);
 
-      // Outer glow
-      if (isHovered || isHighlightedSys) {
-        const glowR = r * 4;
-        const glow = ctx.createRadialGradient(sx, sy, r * 0.5, sx, sy, glowR);
-        glow.addColorStop(0, hexToRgba(color, 0.25));
+      /* Bigger nodes: 13 base, 15 with bases, 18 for HQ (was 5/7) */
+      const baseR = sys.isHQ ? 18 : (sys.bases?.length ?? 0) > 0 ? 15 : 13;
+      const r = baseR * camera.zoom;
+      const isHov = hovered?.id === sys.id;
+      const isHL = highlightSystemIds?.includes(sys.id);
+      const hasEnemy = sys.bases?.some((b) => b.isEnemy);
+
+      /* LOD: tiny dots only at very low zoom */
+      if (camera.zoom < 0.3) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, Math.max(2, r * 0.4), 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        return;
+      }
+
+      /* Outer glow on hover / highlight */
+      if (isHov || isHL) {
+        const gr = r * 3.5;
+        const glow = ctx.createRadialGradient(sx, sy, r * 0.5, sx, sy, gr);
+        glow.addColorStop(0, hexToRgba(color, 0.3));
         glow.addColorStop(1, hexToRgba(color, 0));
         ctx.beginPath();
-        ctx.arc(sx, sy, glowR, 0, Math.PI * 2);
+        ctx.arc(sx, sy, gr, 0, Math.PI * 2);
         ctx.fillStyle = glow;
         ctx.fill();
       }
 
-      // Rift sighting pulse ring
-      if (sys.riftSightings && sys.riftSightings.length > 0) {
-        const pulsePhase = (Date.now() / 1500) % 1;
-        const pulseR = r * (1.5 + pulsePhase * 2);
+      /* HQ: pulsing golden ring + star icon */
+      if (sys.isHQ) {
+        const pulse = (Math.sin(Date.now() / 800) + 1) / 2;
         ctx.beginPath();
-        ctx.arc(sx, sy, pulseR, 0, Math.PI * 2);
-        ctx.strokeStyle = hexToRgba('#a855f7', 0.3 * (1 - pulsePhase));
+        ctx.arc(sx, sy, r * (1.6 + pulse * 0.3), 0, Math.PI * 2);
+        ctx.strokeStyle = hexToRgba('#fbbf24', 0.4 + pulse * 0.3);
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        if (camera.zoom >= 0.5) {
+          ctx.font = `${14 * camera.zoom}px system-ui`;
+          ctx.fillStyle = '#fbbf24';
+          ctx.textAlign = 'center';
+          ctx.fillText('\u2605', sx, sy - r - 6 * camera.zoom);
+        }
+      }
+
+      /* Enemy base: red dashed ring */
+      if (hasEnemy) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * 1.4, 0, Math.PI * 2);
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      /* Rift sighting pulse ring */
+      if (sys.riftSightings?.length) {
+        const p = (Date.now() / 1500) % 1;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * (1.5 + p * 2), 0, Math.PI * 2);
+        ctx.strokeStyle = hexToRgba('#a855f7', 0.3 * (1 - p));
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
-      // Main dot
+      /* Main dot with radial gradient */
       const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
       grad.addColorStop(0, hexToRgba(color, 1));
       grad.addColorStop(0.6, hexToRgba(color, 0.8));
-      grad.addColorStop(1, hexToRgba(color, 0.2));
+      grad.addColorStop(1, hexToRgba(color, 0.15));
       ctx.beginPath();
       ctx.arc(sx, sy, r, 0, Math.PI * 2);
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // Inner bright core
+      /* Inner bright core */
       ctx.beginPath();
-      ctx.arc(sx, sy, r * 0.35, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.arc(sx, sy, r * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.fill();
 
-      // Label
-      ctx.font = `${isHovered ? 'bold ' : ''}${11 * Math.min(camera.zoom, 1.5)}px system-ui, sans-serif`;
-      ctx.fillStyle = isHovered ? '#fff' : 'rgba(200,210,230,0.75)';
-      ctx.textAlign = 'center';
-      ctx.fillText(sys.name, sx, sy + r + 14 * camera.zoom);
-
-      // Category tag (small)
-      if (camera.zoom >= 0.7) {
-        ctx.font = `${9 * Math.min(camera.zoom, 1.3)}px system-ui, sans-serif`;
-        ctx.fillStyle = hexToRgba(color, 0.5);
-        ctx.fillText(sys.category.toUpperCase(), sx, sy + r + 26 * camera.zoom);
-      }
-
-      // Base count badge
-      if (sys.bases && sys.bases.length > 0 && camera.zoom >= 0.6) {
-        const badgeX = sx + r + 4;
-        const badgeY = sy - r - 2;
-        ctx.beginPath();
-        ctx.arc(badgeX, badgeY, 7, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(34,211,238,0.15)';
-        ctx.fill();
-        ctx.font = `bold ${8}px system-ui, sans-serif`;
-        ctx.fillStyle = '#22d3ee';
+      /* Labels — skip at low zoom for LOD */
+      if (camera.zoom >= 0.5) {
+        ctx.font = `${isHov ? 'bold ' : ''}${12 * Math.min(camera.zoom, 1.5)}px system-ui, sans-serif`;
+        ctx.fillStyle = isHov ? '#fff' : 'rgba(200,210,230,0.8)';
         ctx.textAlign = 'center';
-        ctx.fillText(`${sys.bases.length}`, badgeX, badgeY + 3);
+        ctx.fillText(sys.name, sx, sy + r + 16 * camera.zoom);
+
+        if (camera.zoom >= 0.7) {
+          ctx.font = `${9 * Math.min(camera.zoom, 1.3)}px system-ui, sans-serif`;
+          ctx.fillStyle = hexToRgba(color, 0.5);
+          ctx.fillText(sys.category.toUpperCase(), sx, sy + r + 28 * camera.zoom);
+        }
       }
 
-      // Goal markers
-      const sysGoals = systemGoals.get(sys.id);
-      if (sysGoals && sysGoals.length > 0 && camera.zoom >= 0.6) {
-        const markerX = sx - r - 6;
-        const markerY = sy - r - 2;
+      /* Base count badges — friendly (cyan) / enemy (red) */
+      if (camera.zoom >= 0.5 && sys.bases?.length) {
+        const friendly = sys.bases.filter((b) => !b.isEnemy);
+        const enemies = sys.bases.filter((b) => b.isEnemy);
+
+        if (friendly.length) {
+          const bx = sx + r + 5;
+          const by = sy - r - 3;
+          ctx.beginPath();
+          ctx.arc(bx, by, 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(34,211,238,0.15)';
+          ctx.fill();
+          ctx.font = 'bold 9px system-ui';
+          ctx.fillStyle = '#22d3ee';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${friendly.length}`, bx, by + 3);
+        }
+
+        if (enemies.length) {
+          const bx = sx - r - 5;
+          const by = sy - r - 3;
+          ctx.beginPath();
+          ctx.arc(bx, by, 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(239,68,68,0.2)';
+          ctx.fill();
+          ctx.font = 'bold 9px system-ui';
+          ctx.fillStyle = '#ef4444';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${enemies.length}`, bx, by + 3);
+        }
+      }
+
+      /* Goal markers */
+      const sg = systemGoals.get(sys.id);
+      if (sg?.length && camera.zoom >= 0.5) {
+        const gx = sx - r - (hasEnemy ? 18 : 6);
+        const gy = sy - r - 3;
         ctx.beginPath();
-        ctx.arc(markerX, markerY, 7, 0, Math.PI * 2);
+        ctx.arc(gx, gy, 8, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(99,102,241,0.2)';
         ctx.fill();
-        ctx.font = `bold ${8}px system-ui, sans-serif`;
+        ctx.font = 'bold 9px system-ui';
         ctx.fillStyle = '#6366f1';
         ctx.textAlign = 'center';
-        ctx.fillText(`${sysGoals.length}`, markerX, markerY + 3);
+        ctx.fillText(`${sg.length}`, gx, gy + 3);
       }
     });
-
-    // Slow tick for rift pulse animation (~15fps)
-    const hasRifts = systems.some((s) => s.riftSightings && s.riftSightings.length > 0);
-    if (hasRifts) {
-      const tid = setTimeout(() => setTick((t) => t + 1), 66);
-      return () => clearTimeout(tid);
-    }
   });
 
   /* ── Canvas sizing ── */
@@ -315,31 +403,49 @@ export function StarMap({
     };
 
     resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(container);
-    return () => observer.disconnect();
+    const obs = new ResizeObserver(resize);
+    obs.observe(container);
+    return () => obs.disconnect();
   }, [height]);
 
-  /* ── Mouse handlers ── */
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.12 : 0.89;
-      setCamera((c) => ({
-        ...c,
-        zoom: Math.max(0.3, Math.min(4, c.zoom * factor)),
-      }));
-    },
-    [],
-  );
+  /* ── Zoom-to-cursor via native wheel listener (non-passive) ── */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      setDragging(true);
-      setDragStart({ x: e.clientX - camera.x * camera.zoom, y: e.clientY - camera.y * camera.zoom });
-    },
-    [camera],
-  );
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.12 : 0.89;
+
+      setCamera((c) => {
+        const nz = Math.max(0.15, Math.min(5, c.zoom * factor));
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        // World position under cursor before zoom
+        const wx = (mx - cx) / c.zoom - c.x;
+        const wy = (my - cy) / c.zoom - c.y;
+        // Adjust camera so same world point stays under cursor
+        return { x: (mx - cx) / nz - wx, y: (my - cy) / nz - wy, zoom: nz };
+      });
+    };
+
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, []);
+
+  /* ── Mouse handlers ── */
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    dragRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      camX: cameraRef.current.x,
+      camY: cameraRef.current.y,
+    };
+    dragDist.current = 0;
+  }, []);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -350,58 +456,68 @@ export function StarMap({
       const my = e.clientY - rect.top;
       setMousePos({ x: mx, y: my });
 
-      if (dragging) {
-        setCamera((c) => ({
-          ...c,
-          x: (e.clientX - dragStart.x) / c.zoom,
-          y: (e.clientY - dragStart.y) / c.zoom,
-        }));
+      if (dragRef.current) {
+        const dx = e.clientX - dragRef.current.mouseX;
+        const dy = e.clientY - dragRef.current.mouseY;
+        dragDist.current = Math.hypot(dx, dy);
+        const z = cameraRef.current.zoom;
+        setCamera({
+          x: dragRef.current.camX + dx / z,
+          y: dragRef.current.camY + dy / z,
+          zoom: z,
+        });
+        canvas.style.cursor = 'grabbing';
         return;
       }
 
-      // Hit test for hover
-      const w = rect.width;
+      /* Hit test for hover */
       let found: TribeSystem | null = null;
       for (const sys of systems) {
-        const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, w);
-        const dist = Math.hypot(mx - sx, my - sy);
-        if (dist < 20) {
+        const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, rect.width);
+        const hitR = Math.max(20, 15 * cameraRef.current.zoom);
+        if (Math.hypot(mx - sx, my - sy) < hitR) {
           found = sys;
           break;
         }
       }
       setHovered(found);
-      canvas.style.cursor = found ? 'pointer' : dragging ? 'grabbing' : 'grab';
+      canvas.style.cursor = found ? 'pointer' : 'grab';
     },
-    [dragging, dragStart, systems, toScreen],
+    [systems, toScreen],
   );
 
   const handleMouseUp = useCallback(() => {
-    if (dragging && hovered && onSystemClick) {
-      // Only fire click if we didn't drag far
+    const wasDrag = dragRef.current !== null;
+    const dist = dragDist.current;
+    dragRef.current = null;
+    dragDist.current = 0;
+
+    if ((!wasDrag || dist < 5) && hovered && onSystemClick) {
       onSystemClick(hovered);
     }
-    setDragging(false);
-  }, [dragging, hovered, onSystemClick]);
-
-  const handleClick = useCallback(
-    (_e: React.MouseEvent) => {
-      if (!onSystemClick || !hovered) return;
-      onSystemClick(hovered);
-    },
-    [onSystemClick, hovered],
-  );
+  }, [hovered, onSystemClick]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-subtle)', background: '#080a14' }}>
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        width: '100%',
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+        border: '1px solid var(--border-subtle)',
+        background: '#080a14',
+      }}
+    >
       <canvas
         ref={canvasRef}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => { setDragging(false); setHovered(null); }}
-        onClick={handleClick}
+        onMouseLeave={() => {
+          dragRef.current = null;
+          setHovered(null);
+        }}
         style={{ display: 'block', cursor: 'grab' }}
       />
 
@@ -410,7 +526,10 @@ export function StarMap({
         <div
           style={{
             position: 'absolute',
-            left: Math.min(mousePos.x + 14, (containerRef.current?.offsetWidth ?? 400) - 220),
+            left: Math.min(
+              mousePos.x + 14,
+              (containerRef.current?.offsetWidth ?? 400) - 220,
+            ),
             top: Math.max(mousePos.y - 10, 4),
             pointerEvents: 'none',
             background: 'rgba(10,12,24,0.92)',
@@ -419,41 +538,113 @@ export function StarMap({
             borderRadius: 8,
             padding: '10px 14px',
             minWidth: 180,
-            maxWidth: 240,
+            maxWidth: 260,
             zIndex: 10,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: CATEGORY_COLORS[hovered.category] }} />
-            <span style={{ fontWeight: 600, fontSize: 13, color: '#fff' }}>{hovered.name}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: CATEGORY_COLORS[hovered.category], marginLeft: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 6,
+            }}
+          >
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: CATEGORY_COLORS[hovered.category],
+              }}
+            />
+            <span style={{ fontWeight: 600, fontSize: 13, color: '#fff' }}>
+              {hovered.name}
+            </span>
+            {hovered.isHQ && (
+              <span style={{ color: '#fbbf24', fontSize: 13 }}>{'\u2605'}</span>
+            )}
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                color: CATEGORY_COLORS[hovered.category],
+                marginLeft: 'auto',
+              }}
+            >
               {hovered.category}
             </span>
           </div>
           {hovered.controlledBy && (
-            <div style={{ fontSize: 11, color: 'rgba(200,210,230,0.7)', marginBottom: 2 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: 'rgba(200,210,230,0.7)',
+                marginBottom: 2,
+              }}
+            >
               Control: {hovered.controlledBy}
             </div>
           )}
           {hovered.threatLevel != null && (
-            <div style={{ fontSize: 11, color: hovered.threatLevel >= 7 ? '#ef4444' : hovered.threatLevel >= 4 ? '#eab308' : '#22c55e' }}>
+            <div
+              style={{
+                fontSize: 11,
+                color:
+                  hovered.threatLevel >= 7
+                    ? '#ef4444'
+                    : hovered.threatLevel >= 4
+                      ? '#eab308'
+                      : '#22c55e',
+              }}
+            >
               Threat: {hovered.threatLevel}/10
             </div>
           )}
           {hovered.bases && hovered.bases.length > 0 && (
-            <div style={{ fontSize: 11, color: '#22d3ee', marginTop: 2 }}>
-              {hovered.bases.length} base{hovered.bases.length > 1 ? 's' : ''}
+            <div style={{ fontSize: 11, marginTop: 2 }}>
+              <span style={{ color: '#22d3ee' }}>
+                {hovered.bases.filter((b) => !b.isEnemy).length} base
+                {hovered.bases.filter((b) => !b.isEnemy).length !== 1
+                  ? 's'
+                  : ''}
+              </span>
+              {hovered.bases.some((b) => b.isEnemy) && (
+                <span style={{ color: '#ef4444', marginLeft: 8 }}>
+                  {hovered.bases.filter((b) => b.isEnemy).length} enemy
+                </span>
+              )}
             </div>
           )}
           {hovered.riftSightings && hovered.riftSightings.length > 0 && (
             <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>
-              🌀 {hovered.riftSightings.length} rift sighting{hovered.riftSightings.length > 1 ? 's' : ''}
+              {'\uD83C\uDF00'} {hovered.riftSightings.length} rift sighting
+              {hovered.riftSightings.length > 1 ? 's' : ''}
             </div>
           )}
           {hovered.resources && hovered.resources.length > 0 && (
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: 3,
+                flexWrap: 'wrap',
+                marginTop: 4,
+              }}
+            >
               {hovered.resources.map((r) => (
-                <span key={r} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(168,85,247,0.12)', color: '#a855f7' }}>{r}</span>
+                <span
+                  key={r}
+                  style={{
+                    fontSize: 9,
+                    padding: '1px 5px',
+                    borderRadius: 3,
+                    background: 'rgba(168,85,247,0.12)',
+                    color: '#a855f7',
+                  }}
+                >
+                  {r}
+                </span>
               ))}
             </div>
           )}
@@ -461,32 +652,104 @@ export function StarMap({
       )}
 
       {/* Legend */}
-      <div style={{ position: 'absolute', bottom: 8, left: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {(['core', 'frontline', 'contested', 'expansion', 'resource', 'unknown'] as SystemCategory[]).map((cat) => (
-          <span key={cat} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'rgba(200,210,230,0.5)' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: CATEGORY_COLORS[cat] }} />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          left: 8,
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
+        {(
+          ['core', 'frontline', 'contested', 'expansion', 'resource', 'unknown'] as SystemCategory[]
+        ).map((cat) => (
+          <span
+            key={cat}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 9,
+              color: 'rgba(200,210,230,0.5)',
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: CATEGORY_COLORS[cat],
+              }}
+            />
             {cat}
           </span>
         ))}
       </div>
 
       {/* Zoom controls */}
-      <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 4 }}>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          right: 8,
+          display: 'flex',
+          gap: 4,
+        }}
+      >
         <button
-          onClick={() => setCamera((c) => ({ ...c, zoom: Math.min(4, c.zoom * 1.3) }))}
-          style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(100,120,160,0.2)', background: 'rgba(10,12,24,0.7)', color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() =>
+            setCamera((c) => ({ ...c, zoom: Math.min(5, c.zoom * 1.3) }))
+          }
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            border: '1px solid rgba(100,120,160,0.2)',
+            background: 'rgba(10,12,24,0.7)',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           +
         </button>
         <button
-          onClick={() => setCamera((c) => ({ ...c, zoom: Math.max(0.3, c.zoom * 0.7) }))}
-          style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(100,120,160,0.2)', background: 'rgba(10,12,24,0.7)', color: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() =>
+            setCamera((c) => ({ ...c, zoom: Math.max(0.15, c.zoom * 0.7) }))
+          }
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            border: '1px solid rgba(100,120,160,0.2)',
+            background: 'rgba(10,12,24,0.7)',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          −
+          {'\u2212'}
         </button>
         <button
           onClick={() => setCamera({ x: 0, y: 0, zoom: 1 })}
-          style={{ height: 28, paddingInline: 8, borderRadius: 6, border: '1px solid rgba(100,120,160,0.2)', background: 'rgba(10,12,24,0.7)', color: 'rgba(200,210,230,0.6)', cursor: 'pointer', fontSize: 10 }}
+          style={{
+            height: 28,
+            paddingInline: 8,
+            borderRadius: 6,
+            border: '1px solid rgba(100,120,160,0.2)',
+            background: 'rgba(10,12,24,0.7)',
+            color: 'rgba(200,210,230,0.6)',
+            cursor: 'pointer',
+            fontSize: 10,
+          }}
         >
           Reset
         </button>

@@ -5,7 +5,7 @@ interface EFMapEmbedProps {
   /** Shared EF-Map route URL (e.g. https://ef-map.com/s/780497ab76) */
   shareUrl?: string;
   /** Solar system IDs to highlight (fallback if no shareUrl) */
-  systems?: string[];
+  systems?: number[];
   /** Links between systems as "A-B:color" */
   links?: string[];
   /** Fit camera to show all highlighted systems */
