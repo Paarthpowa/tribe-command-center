@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
 import type { GoalPriority, GoalClassification, ResourceRequirement, Task } from '../types';
-import { Plus, Trash2, ArrowLeft, ArrowRight, Check, Copy } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, ArrowRight, Check, Copy, MapPin } from 'lucide-react';
 
 type DraftTask = {
   title: string;
@@ -61,6 +61,7 @@ const btnSecondary: React.CSSProperties = {
 export function CreateGoalPage() {
   const navigate = useNavigate();
   const addGoal = useAppStore((s) => s.addGoal);
+  const systems = useAppStore((s) => s.systems);
 
   const [step, setStep] = useState(1);
 
@@ -71,6 +72,7 @@ export function CreateGoalPage() {
   const [classification, setClassification] = useState<GoalClassification>('normal');
   const [deadline, setDeadline] = useState('');
   const [mapShareUrl, setMapShareUrl] = useState('');
+  const [linkedSystemIds, setLinkedSystemIds] = useState<number[]>([]);
 
   // Step 2: Auto sub-task generation
   const [useAutoGen, setUseAutoGen] = useState(false);
@@ -170,6 +172,7 @@ export function CreateGoalPage() {
       createdAt: new Date().toISOString(),
       deadline: deadline || undefined,
       mapShareUrl: mapShareUrl || undefined,
+      systemIds: linkedSystemIds.length > 0 ? linkedSystemIds : undefined,
       tasks: goalTasks,
     });
 
@@ -290,6 +293,45 @@ export function CreateGoalPage() {
             <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
               Paste a shared route URL from ef-map.com to display the route on the goal detail page.
             </p>
+          </div>
+
+          {/* Linked Systems */}
+          <div>
+            <label style={labelStyle}>
+              <MapPin size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+              Link Systems (optional)
+            </label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              {linkedSystemIds.map(id => {
+                const sys = systems.find(s => s.id === id);
+                return (
+                  <span key={id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                    background: 'rgba(99,102,241,0.12)', color: '#818cf8',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                  }}>
+                    {sys?.name ?? String(id)}
+                    <button onClick={() => setLinkedSystemIds(ids => ids.filter(i => i !== id))} style={{
+                      background: 'none', border: 'none', color: '#818cf8', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1,
+                    }}>×</button>
+                  </span>
+                );
+              })}
+            </div>
+            <select
+              value=""
+              onChange={e => {
+                const id = Number(e.target.value);
+                if (id && !linkedSystemIds.includes(id)) setLinkedSystemIds(ids => [...ids, id]);
+              }}
+              style={selectStyle}
+            >
+              <option value="">Select a system to link...</option>
+              {systems.filter(s => !linkedSystemIds.includes(s.id)).map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
         </GlassCard>
       )}

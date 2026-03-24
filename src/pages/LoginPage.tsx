@@ -3,11 +3,13 @@ import { Shield, Clock, XCircle } from 'lucide-react';
 
 interface LoginPageProps {
   onConnect: () => void;
+  /** Whether the EVE Vault browser extension is detected */
+  hasEveVault?: boolean;
   /** If set, the user connected but their membership is pending/rejected */
   memberStatus?: 'pending' | 'rejected' | null;
 }
 
-export function LoginPage({ onConnect, memberStatus }: LoginPageProps) {
+export function LoginPage({ onConnect, hasEveVault, memberStatus }: LoginPageProps) {
   if (memberStatus === 'pending') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
@@ -109,7 +111,9 @@ export function LoginPage({ onConnect, memberStatus }: LoginPageProps) {
             padding: '14px 0',
             borderRadius: 'var(--radius-md)',
             border: 'none',
-            background: 'linear-gradient(135deg, var(--accent-indigo), #4f46e5)',
+            background: hasEveVault === false
+              ? 'linear-gradient(135deg, #6b7280, #4b5563)'
+              : 'linear-gradient(135deg, var(--accent-indigo), #4f46e5)',
             color: '#fff',
             fontSize: 15,
             fontWeight: 600,
@@ -120,7 +124,7 @@ export function LoginPage({ onConnect, memberStatus }: LoginPageProps) {
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
         >
-          Connect EVE Vault
+          {hasEveVault === false ? 'Install EVE Vault to Connect' : 'Connect EVE Vault'}
         </button>
 
         <p

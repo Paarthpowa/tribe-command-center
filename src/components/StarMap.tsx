@@ -104,7 +104,7 @@ export function StarMap({
 
   /* ── Animation tick (~15 fps, only when needed) ── */
   const hasAnimations = systems.some(
-    (s) => (s.riftSightings?.length ?? 0) > 0 || s.isHQ,
+    (s) => (s.riftSightings?.length ?? 0) > 0 || s.isHQ || (s.threatLevel ?? 0) >= 7,
   );
   useEffect(() => {
     if (!hasAnimations) return;
@@ -296,6 +296,27 @@ export function StarMap({
         ctx.lineWidth = 1.5;
         ctx.stroke();
         ctx.setLineDash([]);
+      }
+
+      /* Danger alert: pulsing red glow for high-threat systems (threat >= 7) */
+      if ((sys.threatLevel ?? 0) >= 7) {
+        const dp = (Math.sin(Date.now() / 600) + 1) / 2;
+        const dangerR = r * (2.0 + dp * 1.0);
+        const dangerGlow = ctx.createRadialGradient(sx, sy, r, sx, sy, dangerR);
+        dangerGlow.addColorStop(0, `rgba(239,68,68,${0.15 + dp * 0.1})`);
+        dangerGlow.addColorStop(1, 'rgba(239,68,68,0)');
+        ctx.beginPath();
+        ctx.arc(sx, sy, dangerR, 0, Math.PI * 2);
+        ctx.fillStyle = dangerGlow;
+        ctx.fill();
+
+        /* Warning triangle icon at top */
+        if (camera.zoom >= 0.5) {
+          ctx.font = `${10 * camera.zoom}px system-ui`;
+          ctx.fillStyle = `rgba(239,68,68,${0.7 + dp * 0.3})`;
+          ctx.textAlign = 'center';
+          ctx.fillText('\u26a0', sx, sy - r - 14 * camera.zoom);
+        }
       }
 
       /* Rift sighting pulse ring */
@@ -600,6 +621,7 @@ export function StarMap({
               }}
             >
               Threat: {hovered.threatLevel}/10
+              {hovered.threatLevel >= 7 && <span style={{ marginLeft: 4 }}>{'\u26a0'}</span>}
             </div>
           )}
           {hovered.bases && hovered.bases.length > 0 && (
@@ -621,6 +643,13 @@ export function StarMap({
             <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>
               {'\uD83C\uDF00'} {hovered.riftSightings.length} rift sighting
               {hovered.riftSightings.length > 1 ? 's' : ''}
+            </div>
+          )}
+          {hovered.dangers && hovered.dangers.length > 0 && (
+            <div style={{ fontSize: 10, color: '#fca5a5', marginTop: 3 }}>
+              {hovered.dangers.slice(0, 2).map((d, i) => (
+                <div key={i}>{'\u26a0'} {d}</div>
+              ))}
             </div>
           )}
           {hovered.resources && hovered.resources.length > 0 && (

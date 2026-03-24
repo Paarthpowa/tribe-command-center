@@ -21,6 +21,7 @@ import {
   Plus,
   Star,
   Trash2,
+  Search,
 } from 'lucide-react';
 
 const CATEGORY_CONFIG: Record<SystemCategory, { label: string; color: string; icon: typeof Globe }> = {
@@ -237,6 +238,9 @@ function SystemCard({
 export function IntelPage() {
   const { systems, goals, worldSystems, claimSystem, unclaimSystem, setHQ } = useAppStore();
   const [filter, setFilter] = useState<SystemCategory | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [threatFilter, setThreatFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
+  const [showOnlyWithBases, setShowOnlyWithBases] = useState(false);
   const [selectedSystem, setSelectedSystem] = useState<number | null>(null);
   const [showClaim, setShowClaim] = useState(false);
   const [detailSystemId, setDetailSystemId] = useState<number | null>(null);
@@ -245,11 +249,37 @@ export function IntelPage() {
 
   const detailSystem = detailSystemId != null ? systems.find(s => s.id === detailSystemId) : null;
 
-  const filtered = selectedSystem
-    ? systems.filter((s) => s.id === selectedSystem)
-    : filter === 'all'
-      ? systems
-      : systems.filter((s) => s.category === filter);
+  const filtered = useMemo(() => {
+    let result = selectedSystem
+      ? systems.filter((s) => s.id === selectedSystem)
+      : filter === 'all'
+        ? systems
+        : systems.filter((s) => s.category === filter);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.notes?.toLowerCase().includes(q) ||
+        s.controlledBy?.toLowerCase().includes(q)
+      );
+    }
+
+    if (threatFilter !== 'all') {
+      result = result.filter((s) => {
+        const t = s.threatLevel ?? 0;
+        if (threatFilter === 'low') return t <= 3;
+        if (threatFilter === 'medium') return t > 3 && t <= 6;
+        return t > 6;
+      });
+    }
+
+    if (showOnlyWithBases) {
+      result = result.filter((s) => (s.bases?.length ?? 0) > 0);
+    }
+
+    return result;
+  }, [systems, selectedSystem, filter, searchQuery, threatFilter, showOnlyWithBases]);
 
   // Summary stats
   const totalRifts = systems.reduce((acc, s) => acc + (s.riftSightings?.length ?? 0), 0);
@@ -344,11 +374,47 @@ export function IntelPage() {
       </div>
 
       {/* Category filter */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         <FilterBtn label="All" active={filter === 'all'} color="#6366f1" onClick={() => setFilter('all')} />
         {(Object.entries(CATEGORY_CONFIG) as [SystemCategory, typeof CATEGORY_CONFIG[SystemCategory]][]).map(([key, cfg]) => (
           <FilterBtn key={key} label={cfg.label} active={filter === key} color={cfg.color} onClick={() => setFilter(key)} />
         ))}
+      </div>
+
+      {/* Search & extra filters */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search systems by name, notes..."
+            style={{
+              width: '100%', padding: '8px 10px 8px 30px', borderRadius: 6, fontSize: 12,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle)',
+              color: 'var(--text-primary)', outline: 'none',
+            }}
+          />
+        </div>
+        <select
+          value={threatFilter}
+          onChange={e => setThreatFilter(e.target.value as typeof threatFilter)}
+          style={{
+            padding: '8px 10px', borderRadius: 6, fontSize: 12,
+            background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle)',
+            color: 'var(--text-primary)', outline: 'none',
+          }}
+        >
+          <option value="all">All Threats</option>
+          <option value="low">Low (0-3)</option>
+          <option value="medium">Medium (4-6)</option>
+          <option value="high">High (7-10)</option>
+        </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showOnlyWithBases} onChange={e => setShowOnlyWithBases(e.target.checked)} style={{ accentColor: '#22d3ee' }} />
+          Has bases
+        </label>
       </div>
 
       {/* System cards */}

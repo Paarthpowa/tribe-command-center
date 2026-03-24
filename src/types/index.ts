@@ -93,12 +93,16 @@ export interface TribeSystem {
   lastScouted?: string;
   /** Is this the tribe's HQ system? */
   isHQ?: boolean;
+  /** Number of planets in this system (determines L-point count) */
+  planetCount?: number;
   /** Known Lagrange points with scouting status */
   lagrangePoints?: LagrangePoint[];
+  /** Orbital zones discovered in this system (content areas: mining, combat, loot) */
+  orbitalZones?: OrbitalZone[];
 }
 
-/** Lagrange point identifier — locations where Network Nodes can be anchored to establish bases */
-export type LPointId = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+/** Lagrange point identifier — e.g. "P1-L1" (Planet 1, Lagrange point 1) or legacy "L1" */
+export type LPointId = string;
 
 /** Lagrange point status — each L-point can host a base (Network Node + Smart Assemblies) */
 export interface LagrangePoint {
@@ -124,6 +128,32 @@ export interface TribeBase {
   lPoint?: LPointId;
   /** Is this an enemy base? */
   isEnemy?: boolean;
+}
+
+/* ── Orbital Zones ── */
+/** Region prefix that categorizes the zone's orbital position */
+export type OrbitalRegion = 'Inner' | 'Trojan' | 'Outer' | 'Fringe';
+
+export type OrbitalZoneStatus = 'unknown' | 'scouted' | 'active' | 'depleted' | 'hostile';
+
+/** An orbital zone — content area (mining, combat, exploration, loot) within a system */
+export interface OrbitalZone {
+  /** Display name, e.g. "Inner Ancient Cluster" */
+  name: string;
+  /** Orbital region prefix */
+  region: OrbitalRegion;
+  /** Current status */
+  status: OrbitalZoneStatus;
+  /** What type of content/activity is available */
+  zoneType?: 'mining' | 'combat' | 'exploration' | 'loot' | 'unknown';
+  /** Resources found here */
+  resources?: string[];
+  /** Dangers or enemies present */
+  dangers?: string[];
+  /** Notes from scouts */
+  notes?: string;
+  /** Last scouted timestamp */
+  lastScouted?: string;
 }
 
 export interface ScoutingLog {
@@ -233,4 +263,16 @@ export interface Tribe {
   leaderAddress: string;
   memberCount: number;
   createdAt: string;
+}
+
+/* ── Activity Feed ── */
+export type ActivityType = 'system_claimed' | 'system_unclaimed' | 'base_added' | 'scout_report' | 'goal_created' | 'pledge_made' | 'member_joined' | 'hq_set' | 'threat_alert' | 'lpoint_updated';
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityType;
+  description: string;
+  memberName?: string;
+  systemName?: string;
+  timestamp: string;
 }

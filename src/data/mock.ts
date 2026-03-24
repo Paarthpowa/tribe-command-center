@@ -35,6 +35,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     threatLevel: 2,
     notes: 'Our home system. Main base cluster here.',
     isHQ: true,
+    planetCount: 4,
     bases: [
       { memberName: 'Commander Zara', energy: 4200, lPoint: 'L4' },
       { memberName: 'Navigator Rex', energy: 3100, lPoint: 'L3' },
@@ -53,6 +54,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     connections: [30000001, 30000003],
     resources: ['Common Ore'],
     threatLevel: 3,
+    planetCount: 2,
     bases: [
       { memberName: 'Engineer Kael', energy: 1800, lPoint: 'L1' },
     ],
@@ -66,6 +68,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     connections: [30000001, 30000008],
     resources: ['Common Ore', 'Metal-rich Ore', 'Carbonaceous Ore'],
     threatLevel: 5,
+    planetCount: 6,
     notes: 'Resource-rich system — all three standard ores present. Planning depot here. Some hostile activity spotted.',
     dangers: ['Pirate scouts reported 2026-03-20'],
     lastScouted: '2026-03-20T11:00:00Z',
@@ -77,6 +80,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     coordinates: { x: 180, y: 170 },
     connections: [30000005, 30000008],
     threatLevel: 7,
+    planetCount: 3,
     notes: 'Border system. Iron Wolves have been spotted here.',
     dangers: ['Iron Wolves raiding party', 'Unstable rift activity'],
     riftSightings: [
@@ -101,6 +105,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     connections: [30000003, 30000012, 30000021],
     threatLevel: 8,
     resources: ['Deep-Core Metallic Ore'],
+    planetCount: 1,
     notes: 'Valuable deep-core metallic deposits. Multiple tribes fighting for control.',
     dangers: ['Iron Wolves main fleet', 'Void Syndicate scouts'],
     lastScouted: '2026-03-18T09:00:00Z',
@@ -113,6 +118,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     connections: [30000001],
     resources: ['Metal-rich Ore', 'Carbonaceous Ore', 'Old Crude Matter'],
     threatLevel: 4,
+    planetCount: 5,
     notes: 'Major resource node — metal-rich and carbonaceous ores plus crude matter. Worth securing.',
     lastScouted: '2026-03-19T16:00:00Z',
   },
@@ -123,6 +129,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     coordinates: { x: 200, y: 50 },
     connections: [30000008],
     threatLevel: 6,
+    planetCount: 2,
     riftSightings: [
       { id: 'rift-3', systemId: 30000021, reportedBy: 'Scout Lyra', timestamp: '2026-03-22T01:00:00Z', type: 'Type-A', notes: 'Large rift, unknown contents' },
     ],

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { GlassCard } from './ui';
 import { useAppStore } from '../stores/appStore';
-import type { TribeSystem, LPointId, LagrangePoint, SystemCategory } from '../types';
+import type { TribeSystem, LPointId, LagrangePoint, SystemCategory, OrbitalZone, OrbitalZoneStatus } from '../types';
+import { KNOWN_ORBITAL_ZONES, REGION_COLORS, parseOrbitalRegion } from '../data/orbital-zones';
 import {
   X,
   MapPin,
@@ -23,7 +24,16 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
-const L_POINTS: LPointId[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+/** Generate L-point IDs based on planet count: P1-L1..L5, P2-L1..L5, etc. */
+function generateLPoints(planetCount: number): LPointId[] {
+  const points: LPointId[] = [];
+  for (let p = 1; p <= planetCount; p++) {
+    for (let l = 1; l <= 5; l++) {
+      points.push(`P${p}-L${l}`);
+    }
+  }
+  return points;
+}
 
 const ZONE_STATUS_CONFIG = {
   unknown: { label: 'Unknown', color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
@@ -60,9 +70,15 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
   const [showScoutForm, setShowScoutForm] = useState(false);
   const [showEditCategory, setShowEditCategory] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>('zones');
+  const [editPlanetCount, setEditPlanetCount] = useState(false);
+  const [showAddZone, setShowAddZone] = useState(false);
 
   const cat = CATEGORY_CONFIG[system.category];
   const CatIcon = cat.icon;
+
+  // Generate dynamic L-points based on planet count
+  const planetCount = system.planetCount ?? 1;
+  const lPoints = useMemo(() => generateLPoints(planetCount), [planetCount]);
 
   // Get Lagrange point data
   const getLPoint = (lp: LPointId): LagrangePoint => {
@@ -176,6 +192,7 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
           <AddBaseForm
             systemId={system.id}
             existingBases={system.bases ?? []}
+            lPoints={lPoints}
             onAdd={() => setShowAddBase(false)}
           />
         )}
@@ -184,27 +201,65 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
         {showScoutForm && (
           <ScoutReportForm
             systemId={system.id}
+            lPoints={lPoints}
             onSubmit={() => setShowScoutForm(false)}
           />
         )}
 
         {/* Lagrange Points */}
         <SectionToggle
-          title="Lagrange Points"
+          title={`Lagrange Points (${planetCount} planet${planetCount !== 1 ? 's' : ''})`}
           icon={<MapPin size={14} />}
           isOpen={activeSection === 'zones'}
           onToggle={() => setActiveSection(activeSection === 'zones' ? null : 'zones')}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {L_POINTS.map(lp => (
-              <LPointCard
-                key={lp}
-                lPoint={lp}
-                lpData={getLPoint(lp)}
-                systemId={system.id}
-              />
-            ))}
+          {/* Planet count editor */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Planets:</span>
+            {editPlanetCount ? (
+              <>
+                <input
+                  type="number"
+                  min={1}
+                  max={15}
+                  value={planetCount}
+                  onChange={e => {
+                    const v = Math.max(1, Math.min(15, Number(e.target.value) || 1));
+                    updateSystem(system.id, { planetCount: v });
+                  }}
+                  style={{ ...inputStyle, width: 50, padding: '3px 6px', textAlign: 'center' }}
+                />
+                <button onClick={() => setEditPlanetCount(false)} style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: 11 }}>Done</button>
+              </>
+            ) : (
+              <button onClick={() => setEditPlanetCount(true)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12 }}>
+                {planetCount} ✏️
+              </button>
+            )}
           </div>
+
+          {/* Group by planet */}
+          {Array.from({ length: planetCount }, (_, pi) => {
+            const pNum = pi + 1;
+            const planetLPs = lPoints.filter(lp => lp.startsWith(`P${pNum}-`));
+            return (
+              <div key={pNum} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase' }}>
+                  Planet {pNum}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {planetLPs.map(lp => (
+                    <LPointCard
+                      key={lp}
+                      lPoint={lp}
+                      lpData={getLPoint(lp)}
+                      systemId={system.id}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </SectionToggle>
 
         {/* Bases */}
@@ -299,6 +354,64 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
           )}
         </SectionToggle>
 
+        {/* Orbital Zones */}
+        <SectionToggle
+          title={`Orbital Zones (${system.orbitalZones?.length ?? 0})`}
+          icon={<Compass size={14} />}
+          isOpen={activeSection === 'orbital'}
+          onToggle={() => setActiveSection(activeSection === 'orbital' ? null : 'orbital')}
+        >
+          <button
+            onClick={() => setShowAddZone(!showAddZone)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: 'rgba(34,211,238,0.1)', color: '#22d3ee',
+              border: '1px solid rgba(34,211,238,0.25)', cursor: 'pointer', marginBottom: 10,
+            }}
+          >
+            <Plus size={12} /> Add Zone
+          </button>
+
+          {showAddZone && (
+            <AddOrbitalZoneForm
+              systemId={system.id}
+              existing={system.orbitalZones ?? []}
+              onAdd={() => setShowAddZone(false)}
+            />
+          )}
+
+          {(!system.orbitalZones || system.orbitalZones.length === 0) ? (
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0' }}>
+              No orbital zones tracked. Add zones you discover in-game.
+            </p>
+          ) : (
+            (['Inner', 'Trojan', 'Outer', 'Fringe'] as const).map(region => {
+              const zones = system.orbitalZones!.filter(z => z.region === region);
+              if (zones.length === 0) return null;
+              return (
+                <div key={region} style={{ marginBottom: 12 }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    color: REGION_COLORS[region], marginBottom: 6,
+                  }}>
+                    {region}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {zones.map(zone => (
+                      <OrbitalZoneCard
+                        key={zone.name}
+                        zone={zone}
+                        systemId={system.id}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </SectionToggle>
+
         {/* Resources & Dangers */}
         {(system.resources?.length || system.dangers?.length) && (
           <SectionToggle
@@ -389,7 +502,7 @@ function LPointCard({ lPoint, lpData, systemId }: { lPoint: LPointId; lpData: La
   return (
     <GlassCard style={{
       padding: '10px 12px', background: cfg.bg, border: `1px solid ${cfg.color}30`,
-      cursor: 'pointer', gridColumn: lPoint === 'L5' ? 'span 2' : undefined,
+      cursor: 'pointer',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: cfg.color }}>{lPoint}</span>
@@ -462,8 +575,8 @@ function LPointCard({ lPoint, lpData, systemId }: { lPoint: LPointId; lpData: La
   );
 }
 
-function AddBaseForm({ systemId, existingBases, onAdd }: {
-  systemId: number; existingBases: { memberName: string }[]; onAdd: () => void;
+function AddBaseForm({ systemId, existingBases, lPoints, onAdd }: {
+  systemId: number; existingBases: { memberName: string }[]; lPoints: LPointId[]; onAdd: () => void;
 }) {
   const { addBase } = useAppStore();
   const [name, setName] = useState('');
@@ -511,7 +624,7 @@ function AddBaseForm({ systemId, existingBases, onAdd }: {
             style={{ ...inputStyle, flex: 1 }}
           >
             <option value="">L-Point...</option>
-            {L_POINTS.map(lp => <option key={lp} value={lp}>{lp}</option>)}
+            {lPoints.map(lp => <option key={lp} value={lp}>{lp}</option>)}
           </select>
           <input
             type="number"
@@ -551,7 +664,7 @@ function AddBaseForm({ systemId, existingBases, onAdd }: {
   );
 }
 
-function ScoutReportForm({ systemId, onSubmit }: { systemId: number; onSubmit: () => void }) {
+function ScoutReportForm({ systemId, lPoints, onSubmit }: { systemId: number; lPoints: LPointId[]; onSubmit: () => void }) {
   const { addScoutingLog, updateLagrangePoint } = useAppStore();
   const [reporter, setReporter] = useState('');
   const [lPoint, setLPoint] = useState<LPointId | ''>('');
@@ -613,7 +726,7 @@ function ScoutReportForm({ systemId, onSubmit }: { systemId: number; onSubmit: (
             style={{ ...inputStyle, flex: 1 }}
           >
             <option value="">L-Point (optional)...</option>
-            {L_POINTS.map(lp => <option key={lp} value={lp}>{lp} — Lagrange {lp.slice(1)}</option>)}
+            {lPoints.map(lp => <option key={lp} value={lp}>{lp}</option>)}
           </select>
         </div>
         <textarea
@@ -685,6 +798,163 @@ function NotesEditor({ systemId, currentNotes }: { systemId: number; currentNote
         </button>
       </div>
     </div>
+  );
+}
+
+const OZ_STATUS_CONFIG: Record<OrbitalZoneStatus, { label: string; color: string }> = {
+  unknown: { label: 'Unknown', color: '#6b7280' },
+  scouted: { label: 'Scouted', color: '#3b82f6' },
+  active: { label: 'Active', color: '#22c55e' },
+  depleted: { label: 'Depleted', color: '#94a3b8' },
+  hostile: { label: 'Hostile', color: '#ef4444' },
+};
+
+function OrbitalZoneCard({ zone, systemId }: { zone: OrbitalZone; systemId: number }) {
+  const { updateOrbitalZone, removeOrbitalZone } = useAppStore();
+  const [showEdit, setShowEdit] = useState(false);
+  const regionColor = REGION_COLORS[zone.region];
+  const statusCfg = OZ_STATUS_CONFIG[zone.status];
+
+  return (
+    <GlassCard style={{
+      padding: '10px 12px',
+      background: `${regionColor}08`,
+      border: `1px solid ${regionColor}25`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
+          {zone.name}
+        </span>
+        <span style={{
+          fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3,
+          background: `${statusCfg.color}18`, color: statusCfg.color,
+          textTransform: 'uppercase',
+        }}>
+          {statusCfg.label}
+        </span>
+        <button onClick={() => setShowEdit(!showEdit)} style={{
+          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 10,
+        }}>✏️</button>
+        <button onClick={() => removeOrbitalZone(systemId, zone.name)} style={{
+          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2,
+        }}><X size={12} /></button>
+      </div>
+
+      {zone.zoneType && (
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>{zone.zoneType}</div>
+      )}
+      {zone.resources && zone.resources.length > 0 && (
+        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>
+          {zone.resources.map(r => (
+            <span key={r} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>{r}</span>
+          ))}
+        </div>
+      )}
+      {zone.notes && (
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>{zone.notes}</div>
+      )}
+      {zone.lastScouted && (
+        <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4 }}>
+          Scouted: {new Date(zone.lastScouted).toLocaleDateString()}
+        </div>
+      )}
+
+      {showEdit && (
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            {(Object.keys(OZ_STATUS_CONFIG) as OrbitalZoneStatus[]).map(s => (
+              <button key={s} onClick={() => {
+                updateOrbitalZone(systemId, zone.name, { status: s, lastScouted: new Date().toISOString() });
+              }} style={{
+                padding: '2px 8px', borderRadius: 3, fontSize: 9, fontWeight: 600,
+                background: s === zone.status ? `${OZ_STATUS_CONFIG[s].color}30` : 'rgba(255,255,255,0.04)',
+                color: OZ_STATUS_CONFIG[s].color, border: `1px solid ${OZ_STATUS_CONFIG[s].color}40`,
+                cursor: 'pointer',
+              }}>
+                {OZ_STATUS_CONFIG[s].label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            defaultValue={zone.notes ?? ''}
+            placeholder="Notes..."
+            onBlur={e => updateOrbitalZone(systemId, zone.name, { notes: e.target.value.trim() || undefined })}
+            style={inputStyle}
+          />
+        </div>
+      )}
+    </GlassCard>
+  );
+}
+
+function AddOrbitalZoneForm({ systemId, existing, onAdd }: {
+  systemId: number; existing: OrbitalZone[]; onAdd: () => void;
+}) {
+  const { addOrbitalZone } = useAppStore();
+  const [selectedName, setSelectedName] = useState('');
+  const [customName, setCustomName] = useState('');
+
+  const availableZones = KNOWN_ORBITAL_ZONES.filter(
+    kz => !existing.some(ez => ez.name === kz.name),
+  );
+
+  const handleAdd = () => {
+    const name = selectedName === '__custom__' ? customName.trim() : selectedName;
+    if (!name) return;
+    if (existing.some(ez => ez.name === name)) return;
+    const region = parseOrbitalRegion(name);
+    addOrbitalZone(systemId, { name, region, status: 'unknown' });
+    setSelectedName('');
+    setCustomName('');
+    onAdd();
+  };
+
+  return (
+    <GlassCard style={{
+      padding: '12px 14px', marginBottom: 10,
+      background: 'rgba(34,211,238,0.04)', border: '1px solid rgba(34,211,238,0.2)',
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#22d3ee', marginBottom: 8 }}>
+        Add Orbital Zone
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <select
+          value={selectedName}
+          onChange={e => setSelectedName(e.target.value)}
+          style={{ ...inputStyle }}
+        >
+          <option value="">Select zone...</option>
+          {availableZones.map(z => (
+            <option key={z.name} value={z.name}>{z.name}</option>
+          ))}
+          <option value="__custom__">Custom zone name...</option>
+        </select>
+        {selectedName === '__custom__' && (
+          <input
+            type="text"
+            value={customName}
+            onChange={e => setCustomName(e.target.value)}
+            placeholder="Zone name (e.g. Inner Mining Depot)"
+            style={inputStyle}
+          />
+        )}
+        <button
+          onClick={handleAdd}
+          disabled={!selectedName || (selectedName === '__custom__' && !customName.trim())}
+          style={{
+            padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+            background: selectedName ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
+            color: selectedName ? '#22d3ee' : 'var(--text-muted)',
+            border: `1px solid ${selectedName ? 'rgba(34,211,238,0.3)' : 'var(--border-subtle)'}`,
+            cursor: selectedName ? 'pointer' : 'default', alignSelf: 'flex-end',
+          }}
+        >
+          <Plus size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+          Add Zone
+        </button>
+      </div>
+    </GlassCard>
   );
 }
 
