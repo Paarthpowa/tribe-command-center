@@ -51,6 +51,7 @@ interface AppState {
   updateGoalStatus: (goalId: string, status: Goal['status']) => void;
   addContribution: (taskId: string, contribution: Contribution) => void;
   updateTaskStatus: (taskId: string, status: Goal['tasks'][number]['status']) => void;
+  markDelivered: (contributionId: string, amount: number) => void;
 
   /* Access control */
   approveMember: (memberId: string) => void;
@@ -128,6 +129,21 @@ export const useAppStore = create<AppState>()(
             tasks: g.tasks.map((t) =>
               t.id === taskId ? { ...t, status } : t,
             ),
+          })),
+        })),
+
+      markDelivered: (contributionId, amount) =>
+        set((s) => ({
+          goals: s.goals.map((g) => ({
+            ...g,
+            tasks: g.tasks.map((t) => ({
+              ...t,
+              contributions: t.contributions.map((c) =>
+                c.id === contributionId
+                  ? { ...c, delivered: Math.min(amount, c.pledged), status: amount >= c.pledged ? 'delivered' as const : 'partial' as const }
+                  : c,
+              ),
+            })),
           })),
         })),
 
@@ -291,7 +307,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 6,
+      version: 7,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -301,7 +317,7 @@ export const useAppStore = create<AppState>()(
         activities: state.activities,
       }),
       migrate: (_persisted, version) => {
-        if (version < 6) return {};
+        if (version < 7) return {};
         return _persisted as Record<string, unknown>;
       },
     },

@@ -10,12 +10,11 @@ import { StatusBadge } from '../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import {
   getStatusColor,
-  getStatusLabel,
   getPriorityColor,
   getTaskProgress,
 } from '../lib/helpers';
 import { ArrowLeft, MapPin, Calendar } from 'lucide-react';
-import type { Contribution } from '../types';
+import type { Contribution, GoalStatus } from '../types';
 
 export function GoalDetailPage() {
   const { goalId } = useParams<{ goalId: string }>();
@@ -23,6 +22,7 @@ export function GoalDetailPage() {
   const goals = useAppStore((s) => s.goals);
   const systems = useAppStore((s) => s.systems);
   const addContribution = useAppStore((s) => s.addContribution);
+  const updateGoalStatus = useAppStore((s) => s.updateGoalStatus);
 
   const [pledgeTaskId, setPledgeTaskId] = useState<string | null>(null);
 
@@ -99,7 +99,20 @@ export function GoalDetailPage() {
           </p>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <StatusBadge label={getStatusLabel(goal.status)} color={getStatusColor(goal.status)} />
+            <select
+              value={goal.status}
+              onChange={(e) => updateGoalStatus(goal.id, e.target.value as GoalStatus)}
+              style={{
+                padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
+                color: getStatusColor(goal.status), outline: 'none', cursor: 'pointer',
+              }}
+            >
+              <option value="planning">Planning</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
             <StatusBadge label={goal.priority} color={getPriorityColor(goal.priority)} />
             {goal.deadline && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>

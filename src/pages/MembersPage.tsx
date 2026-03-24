@@ -66,13 +66,17 @@ export function MembersPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => approveMember(m.id)}
+                  onClick={() => {
+                    if (confirm(`Approve ${m.name} as a tribe member?`)) approveMember(m.id);
+                  }}
                   style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#22c55e20', color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   <CheckCircle size={13} /> Approve
                 </button>
                 <button
-                  onClick={() => rejectMember(m.id)}
+                  onClick={() => {
+                    if (confirm(`Reject ${m.name}? This cannot be undone.`)) rejectMember(m.id);
+                  }}
                   style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#ef444420', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   <XCircle size={13} /> Reject

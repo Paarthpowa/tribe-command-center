@@ -61,7 +61,9 @@ const btnSecondary: React.CSSProperties = {
 export function CreateGoalPage() {
   const navigate = useNavigate();
   const addGoal = useAppStore((s) => s.addGoal);
+  const tribe = useAppStore((s) => s.tribe);
   const systems = useAppStore((s) => s.systems);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [step, setStep] = useState(1);
 
@@ -160,15 +162,16 @@ export function CreateGoalPage() {
         }));
     }
 
+    const currentAddr = useAppStore.getState().walletAddress ?? 'unknown';
     addGoal({
       id: goalId,
-      tribeId: 'tribe-alpha',
+      tribeId: tribe?.id ?? 'tribe-alpha',
       title,
       description,
       classification,
       status: 'planning',
       priority,
-      createdBy: 'current-user',
+      createdBy: currentAddr,
       createdAt: new Date().toISOString(),
       deadline: deadline || undefined,
       mapShareUrl: mapShareUrl || undefined,
@@ -176,7 +179,8 @@ export function CreateGoalPage() {
       tasks: goalTasks,
     });
 
-    navigate('/');
+    setShowSuccess(true);
+    setTimeout(() => navigate(`/goal/${goalId}`), 1200);
   };
 
   const canProceedStep1 = title.trim().length > 0;
@@ -209,6 +213,17 @@ export function CreateGoalPage() {
       <p style={{ margin: '0 0 24px', fontSize: 13, color: 'var(--text-muted)' }}>
         Step {step} of 2 — {step === 1 ? 'Goal Details' : 'Define Tasks'}
       </p>
+
+      {showSuccess && (
+        <div style={{
+          padding: '14px 20px', borderRadius: 'var(--radius-md)',
+          background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
+          color: '#10b981', fontSize: 14, fontWeight: 600, marginBottom: 20,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <Check size={16} /> Goal created successfully! Redirecting...
+        </div>
+      )}
 
       {/* Step indicator */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>

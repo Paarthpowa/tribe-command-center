@@ -54,7 +54,7 @@ export function PledgeModal({ task, onClose, onSubmit }: PledgeModalProps) {
     const contribution: Contribution = {
       id: `c-${Date.now()}`,
       taskId: task.id,
-      memberAddress: '0xcurrent_user',
+      memberAddress: walletAddress ?? '',
       memberName,
       resource: selectedResource,
       pledged: Math.min(amount, remaining),

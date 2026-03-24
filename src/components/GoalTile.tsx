@@ -9,7 +9,7 @@ import {
   getTaskProgress,
 } from '../lib/helpers';
 import type { CSSProperties } from 'react';
-import { Lock, ShieldAlert } from 'lucide-react';
+import { Lock, ShieldAlert, Calendar } from 'lucide-react';
 
 const CLASSIFICATION_STYLE: Record<GoalClassification, { label: string; color: string; icon?: typeof Lock }> = {
   normal: { label: '', color: '' },
@@ -102,9 +102,17 @@ export function GoalTile({ goal }: GoalTileProps) {
             );
           })()}
         </div>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {doneTasks}/{totalTasks} tasks
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {goal.deadline && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: new Date(goal.deadline) < new Date() ? '#ef4444' : 'var(--text-muted)' }}>
+              <Calendar size={11} />
+              {new Date(goal.deadline).toLocaleDateString()}
+            </span>
+          )}
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {doneTasks}/{totalTasks} tasks
+          </span>
+        </div>
       </div>
     </GlassCard>
   );

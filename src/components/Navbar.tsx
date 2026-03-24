@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, LayoutDashboard, Plus, Users, Trophy, Globe } from 'lucide-react';
+import { Shield, LayoutDashboard, Plus, Users, Trophy, Globe, LogOut } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 
 export function Navbar() {
   const location = useLocation();
-  const { isConnected, walletAddress, tribe } = useAppStore();
+  const { isConnected, walletAddress, tribe, currentMember, setWallet } = useAppStore();
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -73,19 +73,34 @@ export function Navbar() {
       {/* Wallet */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {isConnected ? (
-          <span
-            style={{
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-xl)',
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--accent-emerald)',
-              background: 'rgba(16,185,129,0.08)',
-              border: '1px solid rgba(16,185,129,0.2)',
-            }}
-          >
-            {abbreviated}
-          </span>
+          <>
+            <span
+              style={{
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-xl)',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--accent-emerald)',
+                background: 'rgba(16,185,129,0.08)',
+                border: '1px solid rgba(16,185,129,0.2)',
+              }}
+            >
+              {currentMember()?.name ?? abbreviated}
+            </span>
+            <button
+              onClick={() => setWallet(null)}
+              title="Disconnect"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '6px 10px', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                background: 'transparent',
+                color: 'var(--text-muted)', cursor: 'pointer', fontSize: 11,
+              }}
+            >
+              <LogOut size={13} />
+            </button>
+          </>
         ) : (
           <span
             style={{

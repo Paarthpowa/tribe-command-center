@@ -1,16 +1,27 @@
-import type { Task } from '../types';
+import type { Task, TaskStatus } from '../types';
 import { StatusBadge, GlassCard } from './ui';
 import { getStatusColor, getStatusLabel } from '../lib/helpers';
-import { ChevronDown, ChevronUp, Package, Clock } from 'lucide-react';
+import { ChevronDown, ChevronUp, Package, Clock, CheckCircle, Truck } from 'lucide-react';
 import { useState } from 'react';
+import { useAppStore } from '../stores/appStore';
 
 interface TaskCardProps {
   task: Task;
   onPledge?: (taskId: string) => void;
 }
 
+const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
+  { value: 'open', label: 'Open' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'blocked', label: 'Blocked' },
+];
+
 export function TaskCard({ task, onPledge }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const updateTaskStatus = useAppStore((s) => s.updateTaskStatus);
+  const markDelivered = useAppStore((s) => s.markDelivered);
+  const walletAddress = useAppStore((s) => s.walletAddress);
 
   const totalNeeded = task.requirements.reduce((s, r) => s + r.amount, 0);
   const totalDelivered = task.contributions.reduce((s, c) => s + c.delivered, 0);
@@ -175,68 +186,138 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 Contributions
               </div>
-              {task.contributions.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '6px 10px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-secondary)',
-                    marginBottom: 4,
-                    fontSize: 12,
-                  }}
-                >
-                  <span style={{ color: 'var(--text-primary)' }}>{c.memberName}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {c.resource}: {c.delivered}/{c.pledged}
+              {task.contributions.map((c) => {
+                const isMine = c.memberAddress === walletAddress;
+                const canMarkDelivered = isMine && c.status !== 'delivered';
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isMine ? 'rgba(99,102,241,0.06)' : 'var(--bg-secondary)',
+                      border: isMine ? '1px solid rgba(99,102,241,0.15)' : '1px solid transparent',
+                      marginBottom: 4,
+                      fontSize: 12,
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-primary)' }}>
+                      {c.memberName}
+                      {isMine && <span style={{ color: 'var(--accent-indigo)', marginLeft: 4, fontSize: 10 }}>YOU</span>}
                     </span>
-                    {c.deadline && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--text-muted)', fontSize: 11 }}>
-                        <Clock size={10} />
-                        {new Date(c.deadline).toLocaleDateString()}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {c.resource}: {c.delivered}/{c.pledged}
                       </span>
-                    )}
-                    <StatusBadge
-                      label={c.status}
-                      color={getStatusColor(
-                        c.status === 'delivered' ? 'completed' : c.status === 'partial' ? 'in_progress' : 'open',
+                      {c.deadline && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--text-muted)', fontSize: 11 }}>
+                          <Clock size={10} />
+                          {new Date(c.deadline).toLocaleDateString()}
+                        </span>
                       )}
-                    />
+                      <StatusBadge
+                        label={c.status}
+                        color={getStatusColor(
+                          c.status === 'delivered' ? 'completed' : c.status === 'partial' ? 'in_progress' : 'open',
+                        )}
+                      />
+                      {canMarkDelivered && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markDelivered(c.id, c.pledged);
+                          }}
+                          title="Mark as fully delivered"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            padding: '3px 8px', borderRadius: 4,
+                            border: '1px solid rgba(16,185,129,0.3)',
+                            background: 'rgba(16,185,129,0.08)',
+                            color: '#10b981', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+                          }}
+                        >
+                          <Truck size={10} /> Delivered
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
-          {/* Pledge button */}
-          {task.status !== 'completed' && task.requirements.length > 0 && !fullyPledged && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPledge?.(task.id);
-              }}
-              style={{
-                alignSelf: 'flex-start',
-                padding: '8px 18px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-accent)',
-                background: 'transparent',
-                color: 'var(--accent-indigo)',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(99,102,241,0.1)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              + Pledge Resources
-            </button>
-          )}
+          {/* Task actions row */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
+            {/* Status selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Status:</span>
+              <select
+                value={task.status}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  updateTaskStatus(task.id, e.target.value as TaskStatus);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  padding: '4px 8px', borderRadius: 4, fontSize: 11,
+                  background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)', outline: 'none', cursor: 'pointer',
+                }}
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Mark completed quick button */}
+            {task.status !== 'completed' && fullyDelivered && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateTaskStatus(task.id, 'completed');
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 4,
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  background: 'rgba(16,185,129,0.1)',
+                  color: '#10b981', cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                }}
+              >
+                <CheckCircle size={12} /> Mark Complete
+              </button>
+            )}
+
+            {/* Pledge button */}
+            {task.status !== 'completed' && task.requirements.length > 0 && !fullyPledged && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPledge?.(task.id);
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-accent)',
+                  background: 'transparent',
+                  color: 'var(--accent-indigo)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(99,102,241,0.1)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                + Pledge Resources
+              </button>
+            )}
+          </div>
         </div>
       )}
     </GlassCard>
