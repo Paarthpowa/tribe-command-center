@@ -50,7 +50,20 @@ export function StarMap({
   const containerRef = useRef<HTMLDivElement>(null);
 
   /* Camera: state drives rendering, ref provides fresh values in callbacks */
-  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
+  const [camera, setCamera] = useState(() => {
+    // Auto-center and auto-zoom to fit all systems
+    if (systems.length === 0) return { x: 0, y: 0, zoom: 1 };
+    const xs = systems.map((s) => s.coordinates.x);
+    const ys = systems.map((s) => s.coordinates.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const spread = Math.max(maxX - minX, maxY - minY, 1);
+    // Zoom so the spread fills ~60% of the viewport (assume ~800px)
+    const z = Math.min(5, Math.max(0.5, 400 / spread));
+    return { x: -cx, y: -cy, zoom: z };
+  });
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
 
@@ -768,7 +781,18 @@ export function StarMap({
           {'\u2212'}
         </button>
         <button
-          onClick={() => setCamera({ x: 0, y: 0, zoom: 1 })}
+          onClick={() => {
+            if (systems.length === 0) { setCamera({ x: 0, y: 0, zoom: 1 }); return; }
+            const xs = systems.map((s) => s.coordinates.x);
+            const ys = systems.map((s) => s.coordinates.y);
+            const minX = Math.min(...xs), maxX = Math.max(...xs);
+            const minY = Math.min(...ys), maxY = Math.max(...ys);
+            const cx = (minX + maxX) / 2;
+            const cy = (minY + maxY) / 2;
+            const spread = Math.max(maxX - minX, maxY - minY, 1);
+            const z = Math.min(5, Math.max(0.5, 400 / spread));
+            setCamera({ x: -cx, y: -cy, zoom: z });
+          }}
           style={{
             height: 28,
             paddingInline: 8,

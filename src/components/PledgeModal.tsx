@@ -6,6 +6,7 @@ import { useAppStore } from '../stores/appStore';
 
 interface PledgeModalProps {
   task: Task;
+  goalDeadline?: string;
   onClose: () => void;
   onSubmit: (contribution: Contribution) => void;
 }
@@ -31,7 +32,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.04em',
 };
 
-export function PledgeModal({ task, onClose, onSubmit }: PledgeModalProps) {
+export function PledgeModal({ task, goalDeadline, onClose, onSubmit }: PledgeModalProps) {
   const { walletAddress, members } = useAppStore();
   const currentMember = members.find((m) => m.address === walletAddress);
   const memberName = currentMember?.name ?? 'Unknown';
@@ -40,7 +41,10 @@ export function PledgeModal({ task, onClose, onSubmit }: PledgeModalProps) {
     task.requirements[0]?.resource ?? '',
   );
   const [amount, setAmount] = useState<number>(0);
-  const [deadline, setDeadline] = useState('');
+  const [deadline, setDeadline] = useState(() => {
+    if (goalDeadline) return goalDeadline.slice(0, 10);
+    return '';
+  });
 
   const req = task.requirements.find((r) => r.resource === selectedResource);
   const alreadyPledged = task.contributions

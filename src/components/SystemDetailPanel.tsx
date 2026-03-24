@@ -41,7 +41,6 @@ const ZONE_STATUS_CONFIG = {
   friendly: { label: 'Friendly', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
   enemy: { label: 'Enemy', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
   contested: { label: 'Contested', color: '#eab308', bg: 'rgba(234,179,8,0.12)' },
-  resource: { label: 'Resource', color: '#a855f7', bg: 'rgba(168,85,247,0.12)' },
 } as const;
 
 const CATEGORY_CONFIG: Record<SystemCategory, { label: string; color: string; icon: typeof Shield }> = {
@@ -520,13 +519,7 @@ function LPointCard({ lPoint, lpData, systemId }: { lPoint: LPointId; lpData: La
           Base by: <strong>{lpData.occupiedBy}</strong>
         </div>
       )}
-      {lpData.resources && lpData.resources.length > 0 && (
-        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-          {lpData.resources.map(r => (
-            <span key={r} style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>{r}</span>
-          ))}
-        </div>
-      )}
+
       {lpData.lastScouted && (
         <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 4 }}>
           Scouted: {new Date(lpData.lastScouted).toLocaleDateString()}

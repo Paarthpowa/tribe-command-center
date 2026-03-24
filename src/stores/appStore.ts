@@ -55,6 +55,7 @@ interface AppState {
   addContribution: (taskId: string, contribution: Contribution) => void;
   updateTaskStatus: (taskId: string, status: Goal['tasks'][number]['status']) => void;
   markDelivered: (contributionId: string, amount: number) => void;
+  approveDelivery: (contributionId: string) => void;
 
   /* Access control */
   approveMember: (memberId: string) => void;
@@ -116,14 +117,26 @@ export const useAppStore = create<AppState>()(
 
       addContribution: (taskId, contribution) =>
         set((s) => ({
-          goals: s.goals.map((g) => ({
-            ...g,
-            tasks: g.tasks.map((t) =>
-              t.id === taskId
-                ? { ...t, contributions: [...t.contributions, contribution] }
-                : t,
-            ),
-          })),
+          goals: s.goals.map((g) => {
+            const task = g.tasks.find((t) => t.id === taskId);
+            if (!task) return g;
+            const timelineEvent = {
+              id: `te-${Date.now()}`,
+              type: 'pledge_made' as const,
+              description: `${contribution.memberName} pledged ${contribution.pledged} ${contribution.resource}`,
+              memberName: contribution.memberName,
+              timestamp: new Date().toISOString(),
+            };
+            return {
+              ...g,
+              tasks: g.tasks.map((t) =>
+                t.id === taskId
+                  ? { ...t, contributions: [...t.contributions, contribution] }
+                  : t,
+              ),
+              timeline: [...(g.timeline ?? []), timelineEvent],
+            };
+          }),
         })),
 
       updateTaskStatus: (taskId, status) =>
@@ -138,17 +151,65 @@ export const useAppStore = create<AppState>()(
 
       markDelivered: (contributionId, amount) =>
         set((s) => ({
-          goals: s.goals.map((g) => ({
-            ...g,
-            tasks: g.tasks.map((t) => ({
-              ...t,
-              contributions: t.contributions.map((c) =>
-                c.id === contributionId
-                  ? { ...c, delivered: Math.min(amount, c.pledged), status: amount >= c.pledged ? 'delivered' as const : 'partial' as const }
-                  : c,
-              ),
-            })),
-          })),
+          goals: s.goals.map((g) => {
+            let contrib: typeof g.tasks[0]['contributions'][0] | undefined;
+            for (const t of g.tasks) {
+              contrib = t.contributions.find((c) => c.id === contributionId);
+              if (contrib) break;
+            }
+            if (!contrib) return g;
+            const timelineEvent = {
+              id: `te-${Date.now()}`,
+              type: 'delivery_confirmed' as const,
+              description: `${contrib.memberName} delivered ${Math.min(amount, contrib.pledged)} ${contrib.resource} (awaiting approval)`,
+              memberName: contrib.memberName,
+              timestamp: new Date().toISOString(),
+            };
+            return {
+              ...g,
+              tasks: g.tasks.map((t) => ({
+                ...t,
+                contributions: t.contributions.map((c) =>
+                  c.id === contributionId
+                    ? { ...c, delivered: Math.min(amount, c.pledged), status: 'pending_approval' as const }
+                    : c,
+                ),
+              })),
+              timeline: [...(g.timeline ?? []), timelineEvent],
+            };
+          }),
+        })),
+
+      approveDelivery: (contributionId) =>
+        set((s) => ({
+          goals: s.goals.map((g) => {
+            let contrib: typeof g.tasks[0]['contributions'][0] | undefined;
+            for (const t of g.tasks) {
+              contrib = t.contributions.find((c) => c.id === contributionId);
+              if (contrib) break;
+            }
+            if (!contrib) return g;
+            const approver = get().currentMember();
+            const timelineEvent = {
+              id: `te-${Date.now()}`,
+              type: 'delivery_confirmed' as const,
+              description: `${approver?.name ?? 'Officer'} approved ${contrib.memberName}'s delivery of ${contrib.delivered} ${contrib.resource} ✓`,
+              memberName: approver?.name ?? 'Officer',
+              timestamp: new Date().toISOString(),
+            };
+            return {
+              ...g,
+              tasks: g.tasks.map((t) => ({
+                ...t,
+                contributions: t.contributions.map((c) =>
+                  c.id === contributionId
+                    ? { ...c, status: c.delivered >= c.pledged ? 'delivered' as const : 'partial' as const }
+                    : c,
+                ),
+              })),
+              timeline: [...(g.timeline ?? []), timelineEvent],
+            };
+          }),
         })),
 
       approveMember: (memberId) =>
@@ -311,7 +372,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 8,
+      version: 9,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -322,7 +383,7 @@ export const useAppStore = create<AppState>()(
         alliance: state.alliance,
       }),
       migrate: (_persisted, version) => {
-        if (version < 8) return {};
+        if (version < 9) return {};
         return _persisted as Record<string, unknown>;
       },
     },

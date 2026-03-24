@@ -37,12 +37,12 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
       // Planet 1 — partially scouted, our main base area
       { lPoint: 'P1-L1', status: 'empty', lastScouted: '2026-03-22T08:00:00Z' },
       { lPoint: 'P1-L2', status: 'empty', lastScouted: '2026-03-22T08:00:00Z' },
-      { lPoint: 'P1-L3', status: 'resource', resources: ['Common Ore'], lastScouted: '2026-03-21T10:00:00Z' },
+      { lPoint: 'P1-L3', status: 'empty', lastScouted: '2026-03-21T10:00:00Z' },
       { lPoint: 'P1-L4', status: 'friendly', occupiedBy: 'Commander Zara', lastScouted: '2026-03-22T08:00:00Z' },
       { lPoint: 'P1-L5', status: 'empty', lastScouted: '2026-03-20T14:00:00Z' },
       // Planet 2 — Navigator Rex base
       { lPoint: 'P2-L1', status: 'unknown' },
-      { lPoint: 'P2-L2', status: 'resource', resources: ['Metal-rich Ore'], lastScouted: '2026-03-19T16:00:00Z' },
+      { lPoint: 'P2-L2', status: 'empty', lastScouted: '2026-03-19T16:00:00Z' },
       { lPoint: 'P2-L3', status: 'friendly', occupiedBy: 'Navigator Rex', lastScouted: '2026-03-22T06:00:00Z' },
       { lPoint: 'P2-L4', status: 'unknown' },
       { lPoint: 'P2-L5', status: 'unknown' },
@@ -55,7 +55,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
       // Planet 4 — partially scouted
       { lPoint: 'P4-L1', status: 'empty', lastScouted: '2026-03-18T11:00:00Z' },
       { lPoint: 'P4-L2', status: 'unknown' },
-      { lPoint: 'P4-L3', status: 'resource', resources: ['Common Ore', 'Carbonaceous Ore'], lastScouted: '2026-03-18T11:00:00Z' },
+      { lPoint: 'P4-L3', status: 'empty', lastScouted: '2026-03-18T11:00:00Z' },
       { lPoint: 'P4-L4', status: 'unknown' },
       { lPoint: 'P4-L5', status: 'unknown' },
       // Planet 5 — unscouted (new)
@@ -194,10 +194,10 @@ export const MOCK_MEMBERS: TribeMember[] = [
 
 const goal1Timeline: TimelineEvent[] = [
   { id: 'te1', type: 'goal_created', description: 'Goal created by Commander Zara', memberName: 'Commander Zara', timestamp: '2026-03-18T08:00:00Z' },
-  { id: 'te2', type: 'pledge_made', description: 'Navigator Rex pledged 20 Building Foam for Gate in ING-00K', memberName: 'Navigator Rex', timestamp: '2026-03-19T10:00:00Z' },
-  { id: 'te3', type: 'pledge_made', description: 'Engineer Kael pledged 26 Building Foam for Gate in ING-00K', memberName: 'Engineer Kael', timestamp: '2026-03-19T14:00:00Z' },
-  { id: 'te4', type: 'delivery_confirmed', description: 'Navigator Rex delivered 20 Building Foam ✓', memberName: 'Navigator Rex', timestamp: '2026-03-20T09:00:00Z' },
-  { id: 'te5', type: 'delivery_confirmed', description: 'Engineer Kael delivered 10/26 Building Foam (partial)', memberName: 'Engineer Kael', timestamp: '2026-03-21T16:00:00Z' },
+  { id: 'te2', type: 'pledge_made', description: 'Navigator Rex pledged 200 Building Foam for Gate in ING-00K', memberName: 'Navigator Rex', timestamp: '2026-03-19T10:00:00Z' },
+  { id: 'te3', type: 'pledge_made', description: 'Engineer Kael pledged 260 Building Foam for Gate in ING-00K', memberName: 'Engineer Kael', timestamp: '2026-03-19T14:00:00Z' },
+  { id: 'te4', type: 'delivery_confirmed', description: 'Navigator Rex delivered 200 Building Foam ✓', memberName: 'Navigator Rex', timestamp: '2026-03-20T09:00:00Z' },
+  { id: 'te5', type: 'delivery_confirmed', description: 'Engineer Kael delivered 100/260 Building Foam (partial)', memberName: 'Engineer Kael', timestamp: '2026-03-21T16:00:00Z' },
   { id: 'te6', type: 'task_added', description: 'Access Rules task assigned to Scout Lyra', memberName: 'Scout Lyra', timestamp: '2026-03-20T11:00:00Z' },
 ];
 
@@ -230,10 +230,10 @@ export const MOCK_GOALS: Goal[] = [
         systemName: 'ING-00K',
         subIndex: 1,
         subTotal: 3,
-        requirements: [{ resource: 'Building Foam', amount: 46 }],
+        requirements: [{ resource: 'Building Foam', amount: 460 }],
         contributions: [
-          { id: 'c1', taskId: 'task-1', memberAddress: '0xplayer_a', memberName: 'Navigator Rex', resource: 'Building Foam', pledged: 20, delivered: 20, status: 'delivered', createdAt: '2026-03-19T00:00:00Z', deadline: '2026-03-22T00:00:00Z', onTime: true },
-          { id: 'c2', taskId: 'task-1', memberAddress: '0xplayer_b', memberName: 'Engineer Kael', resource: 'Building Foam', pledged: 26, delivered: 10, status: 'partial', createdAt: '2026-03-19T12:00:00Z', deadline: '2026-03-25T00:00:00Z' },
+          { id: 'c1', taskId: 'task-1', memberAddress: '0xplayer_a', memberName: 'Navigator Rex', resource: 'Building Foam', pledged: 200, delivered: 200, status: 'delivered', createdAt: '2026-03-19T00:00:00Z', deadline: '2026-03-22T00:00:00Z', onTime: true },
+          { id: 'c2', taskId: 'task-1', memberAddress: '0xplayer_b', memberName: 'Engineer Kael', resource: 'Building Foam', pledged: 260, delivered: 100, status: 'partial', createdAt: '2026-03-19T12:00:00Z', deadline: '2026-03-25T00:00:00Z' },
         ],
       },
       {
@@ -248,7 +248,7 @@ export const MOCK_GOALS: Goal[] = [
         systemName: 'AHG-46K',
         subIndex: 2,
         subTotal: 3,
-        requirements: [{ resource: 'Building Foam', amount: 46 }],
+        requirements: [{ resource: 'Building Foam', amount: 460 }],
         contributions: [],
       },
       {
@@ -290,8 +290,7 @@ export const MOCK_GOALS: Goal[] = [
         systemId: 30019795,
         systemName: 'EBH-VTJ',
         requirements: [
-          { resource: 'Building Foam', amount: 30 },
-          { resource: 'Reinforced Alloys', amount: 15 },
+          { resource: 'Building Foam', amount: 120 },
         ],
         contributions: [],
       },
@@ -330,7 +329,7 @@ export const MOCK_GOALS: Goal[] = [
     id: 'goal-4',
     tribeId: 'tribe-alpha',
     title: 'ING-00K Full System Survey',
-    description: 'Complete scouting of all 25 Lagrange points across 5 planets in our home system. Identify resources for mining, crude rifts for fuel, and any enemy presence.',
+    description: 'Complete scouting of all 25 Lagrange points across 5 planets in our home system. Identify enemy or allied bases, and scan orbital zones for harvestable resources.',
     classification: 'normal',
     status: 'active',
     priority: 'high',
@@ -342,8 +341,8 @@ export const MOCK_GOALS: Goal[] = [
       {
         id: 'task-6',
         goalId: 'goal-4',
-        title: 'Scout Planet 3 & 5 for Mineable Resources',
-        description: 'Survey all L-points on Planets 3 and 5 (10 points total). Mark any mining-viable resources — ore deposits, gas clouds, ice fields.',
+        title: 'Scout Planet 3 & 5 Orbital Zones for Resources',
+        description: 'Survey orbital zones around Planets 3 and 5. Inner zones may contain heavy metals and char, outer zones may have comets with water and carbon. Each zone is unique — needs individual exploration.',
         status: 'open',
         assignedTo: '0xplayer_c',
         taskType: 'scouting',
@@ -360,7 +359,7 @@ export const MOCK_GOALS: Goal[] = [
         id: 'task-7',
         goalId: 'goal-4',
         title: 'Locate Crude Rifts for Fuel Harvesting',
-        description: 'Scan L-points on Planets 2, 4 and 5 for crude rift activity. We need fuel sources close to HQ for Smart Assembly refueling.',
+        description: 'Scan orbital zones on Planets 2, 4 and 5 for crude rift activity. We need fuel sources close to HQ for Smart Assembly refueling.',
         status: 'open',
         taskType: 'scouting',
         scoutingSubtype: 'rift_scouting',
@@ -413,7 +412,7 @@ export const MOCK_GOALS: Goal[] = [
         taskType: 'deployment',
         systemId: 30019793,
         systemName: 'E9G-J3K',
-        requirements: [{ resource: 'Building Foam', amount: 46 }],
+        requirements: [{ resource: 'Building Foam', amount: 460 }],
         contributions: [],
       },
     ],

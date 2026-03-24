@@ -21,7 +21,10 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
   const updateTaskStatus = useAppStore((s) => s.updateTaskStatus);
   const markDelivered = useAppStore((s) => s.markDelivered);
+  const approveDelivery = useAppStore((s) => s.approveDelivery);
   const walletAddress = useAppStore((s) => s.walletAddress);
+  const currentMember = useAppStore((s) => s.currentMember());
+  const canApprove = currentMember && (currentMember.role === 'leader' || currentMember.role === 'officer');
 
   const totalNeeded = task.requirements.reduce((s, r) => s + r.amount, 0);
   const totalDelivered = task.contributions.reduce((s, c) => s + c.delivered, 0);
@@ -142,7 +145,7 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
                   color: task.scoutingSubtype === 'enemy_scouting' ? '#ef4444' :
                     task.scoutingSubtype === 'rift_scouting' ? '#eab308' : '#a855f7',
                 }}>
-                  {task.scoutingSubtype === 'resource_scouting' ? '⛏ Resources' :
+                  {task.scoutingSubtype === 'resource_scouting' ? '⛏ Orbital Zones' :
                     task.scoutingSubtype === 'rift_scouting' ? '🌀 Crude Rifts' : '🎯 Enemy Bases'}
                 </span>
               )}
@@ -205,7 +208,8 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
               </div>
               {task.contributions.map((c) => {
                 const isMine = c.memberAddress === walletAddress;
-                const canMarkDelivered = isMine && c.status !== 'delivered';
+                const canMarkDelivered = isMine && c.status !== 'delivered' && c.status !== 'pending_approval';
+                const isPending = c.status === 'pending_approval';
                 return (
                   <div
                     key={c.id}
@@ -215,8 +219,8 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
                       alignItems: 'center',
                       padding: '6px 10px',
                       borderRadius: 'var(--radius-sm)',
-                      background: isMine ? 'rgba(99,102,241,0.06)' : 'var(--bg-secondary)',
-                      border: isMine ? '1px solid rgba(99,102,241,0.15)' : '1px solid transparent',
+                      background: isPending ? 'rgba(245,158,11,0.06)' : isMine ? 'rgba(99,102,241,0.06)' : 'var(--bg-secondary)',
+                      border: isPending ? '1px solid rgba(245,158,11,0.25)' : isMine ? '1px solid rgba(99,102,241,0.15)' : '1px solid transparent',
                       marginBottom: 4,
                       fontSize: 12,
                     }}
@@ -236,10 +240,13 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
                         </span>
                       )}
                       <StatusBadge
-                        label={c.status}
-                        color={getStatusColor(
-                          c.status === 'delivered' ? 'completed' : c.status === 'partial' ? 'in_progress' : 'open',
-                        )}
+                        label={c.status === 'pending_approval' ? 'Awaiting Approval' : c.status}
+                        color={
+                          c.status === 'pending_approval' ? '#f59e0b' :
+                          getStatusColor(
+                            c.status === 'delivered' ? 'completed' : c.status === 'partial' ? 'in_progress' : 'open',
+                          )
+                        }
                       />
                       {canMarkDelivered && (
                         <button
@@ -257,6 +264,24 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
                           }}
                         >
                           <Truck size={10} /> Delivered
+                        </button>
+                      )}
+                      {isPending && canApprove && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveDelivery(c.id);
+                          }}
+                          title="Approve delivery"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            padding: '3px 8px', borderRadius: 4,
+                            border: '1px solid rgba(16,185,129,0.3)',
+                            background: 'rgba(16,185,129,0.08)',
+                            color: '#10b981', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+                          }}
+                        >
+                          <CheckCircle size={10} /> Approve
                         </button>
                       )}
                     </div>

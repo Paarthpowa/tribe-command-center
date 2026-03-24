@@ -209,6 +209,7 @@ export function GoalDetailPage() {
       {pledgeTask && (
         <PledgeModal
           task={pledgeTask}
+          goalDeadline={goal.deadline}
           onClose={() => setPledgeTaskId(null)}
           onSubmit={handlePledgeSubmit}
         />

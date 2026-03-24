@@ -104,15 +104,14 @@ export interface TribeSystem {
 /** Lagrange point identifier — e.g. "P1-L1" (Planet 1, Lagrange point 1) or legacy "L1" */
 export type LPointId = string;
 
-/** Lagrange point status — each L-point can host a base (Network Node + Smart Assemblies) */
+/** Lagrange point status — each L-point can host a base (Network Node + Smart Assemblies).
+ *  Resources are found in Orbital Zones, NOT at L-points. L-points are scouted for bases only. */
 export interface LagrangePoint {
   lPoint: LPointId;
   /** What's known about this Lagrange point */
-  status: 'unknown' | 'empty' | 'friendly' | 'enemy' | 'contested' | 'resource';
+  status: 'unknown' | 'empty' | 'friendly' | 'enemy' | 'contested';
   /** Who has a base (Network Node) here */
   occupiedBy?: string;
-  /** Resources or items found here */
-  resources?: string[];
   /** Notes from scouts */
   notes?: string;
   /** Last time this L-point was scouted */
@@ -257,7 +256,7 @@ export interface Contribution {
   resource: string;
   pledged: number;
   delivered: number;
-  status: 'pledged' | 'partial' | 'delivered';
+  status: 'pledged' | 'partial' | 'delivered' | 'pending_approval';
   createdAt: string;
   /** Deadline the contributor chose for delivery */
   deadline?: string;

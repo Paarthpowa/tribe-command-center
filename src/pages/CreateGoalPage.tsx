@@ -62,6 +62,7 @@ export function CreateGoalPage() {
   const navigate = useNavigate();
   const addGoal = useAppStore((s) => s.addGoal);
   const tribe = useAppStore((s) => s.tribe);
+  const alliance = useAppStore((s) => s.alliance);
   const systems = useAppStore((s) => s.systems);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -73,6 +74,7 @@ export function CreateGoalPage() {
   const [priority, setPriority] = useState<GoalPriority>('medium');
   const [classification, setClassification] = useState<GoalClassification>('normal');
   const [deadline, setDeadline] = useState('');
+  const [scope, setScope] = useState<'tribe' | 'alliance'>('tribe');
   const [mapShareUrl, setMapShareUrl] = useState('');
   const [linkedSystemIds, setLinkedSystemIds] = useState<number[]>([]);
 
@@ -166,6 +168,7 @@ export function CreateGoalPage() {
     addGoal({
       id: goalId,
       tribeId: tribe?.id ?? 'tribe-alpha',
+      allianceId: scope === 'alliance' && alliance ? alliance.id : undefined,
       title,
       description,
       classification,
@@ -261,7 +264,18 @@ export function CreateGoalPage() {
               placeholder="What is the goal about?"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Scope</label>
+              <select
+                style={selectStyle}
+                value={scope}
+                onChange={(e) => setScope(e.target.value as 'tribe' | 'alliance')}
+              >
+                <option value="tribe">Tribe Only</option>
+                {alliance && <option value="alliance">🤝 Alliance ({alliance.tag})</option>}
+              </select>
+            </div>
             <div>
               <label style={labelStyle}>Priority</label>
               <select
