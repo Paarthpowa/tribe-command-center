@@ -11,6 +11,13 @@ import { IntelPage } from './pages/IntelPage';
 import { LoginPage } from './pages/LoginPage';
 import { useAppStore } from './stores/appStore';
 
+const DEMO_ACCOUNTS: Record<string, string> = {
+  leader: '0xalpha_leader_address',
+  officer: '0xplayer_a',
+  member: '0xplayer_b',
+  scout: '0xplayer_c',
+};
+
 function App() {
   const { walletAddress, isConnected: evConnected, handleConnect, hasEveVault } = useConnection();
   const { isConnected, setWallet, currentMember } = useAppStore();
@@ -20,19 +27,26 @@ function App() {
     if (evConnected && walletAddress) {
       setWallet(walletAddress);
     } else if (!evConnected && isConnected) {
-      setWallet(null);
+      // Don't disconnect if using a demo account
+      const isDemoAddr = Object.values(DEMO_ACCOUNTS).includes(useAppStore.getState().walletAddress ?? '');
+      if (!isDemoAddr) setWallet(null);
     }
   }, [evConnected, walletAddress, isConnected, setWallet]);
+
+  const handleDemoLogin = (role: string) => {
+    const addr = DEMO_ACCOUNTS[role];
+    if (addr) setWallet(addr);
+  };
 
   const member = currentMember();
 
   if (!isConnected) {
-    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} />;
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} onDemoLogin={handleDemoLogin} />;
   }
 
   // Connected but member not found or not approved
   if (!member || member.status !== 'approved') {
-    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus={member?.status === 'approved' ? null : (member?.status ?? 'pending')} />;
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus={member?.status === 'approved' ? null : (member?.status ?? 'pending')} onDemoLogin={handleDemoLogin} />;
   }
 
   return (

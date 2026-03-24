@@ -1,5 +1,12 @@
 import { GlassCard } from '../components/ui';
-import { Shield, Clock, XCircle } from 'lucide-react';
+import { Shield, Clock, XCircle, Users } from 'lucide-react';
+
+const DEMO_ROLES = [
+  { key: 'leader', label: 'Commander Zara', desc: 'Leader — full access', color: '#fbbf24' },
+  { key: 'officer', label: 'Navigator Rex', desc: 'Officer — manage ops', color: '#6366f1' },
+  { key: 'member', label: 'Engineer Kael', desc: 'Member — standard', color: '#22c55e' },
+  { key: 'scout', label: 'Scout Lyra', desc: 'Scout — frontline', color: '#22d3ee' },
+];
 
 interface LoginPageProps {
   onConnect: () => void;
@@ -7,9 +14,11 @@ interface LoginPageProps {
   hasEveVault?: boolean;
   /** If set, the user connected but their membership is pending/rejected */
   memberStatus?: 'pending' | 'rejected' | null;
+  /** Demo login bypass */
+  onDemoLogin?: (role: string) => void;
 }
 
-export function LoginPage({ onConnect, hasEveVault, memberStatus }: LoginPageProps) {
+export function LoginPage({ onConnect, hasEveVault, memberStatus, onDemoLogin }: LoginPageProps) {
   if (memberStatus === 'pending') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
@@ -136,6 +145,36 @@ export function LoginPage({ onConnect, hasEveVault, memberStatus }: LoginPagePro
         >
           Connect your wallet to access your tribe dashboard.
         </p>
+
+        {/* Demo Login Section */}
+        {onDemoLogin && (
+          <div style={{ marginTop: 28, borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
+              <Users size={14} color="var(--text-muted)" />
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Demo Access
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {DEMO_ROLES.map(r => (
+                <button
+                  key={r.key}
+                  onClick={() => onDemoLogin(r.key)}
+                  style={{
+                    padding: '10px 8px', borderRadius: 8, border: `1px solid ${r.color}30`,
+                    background: `${r.color}08`, cursor: 'pointer', textAlign: 'left',
+                    transition: 'background 0.15s, border-color 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = `${r.color}18`; e.currentTarget.style.borderColor = `${r.color}50`; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = `${r.color}08`; e.currentTarget.style.borderColor = `${r.color}30`; }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 600, color: r.color, marginBottom: 2 }}>{r.label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{r.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </GlassCard>
     </div>
   );
