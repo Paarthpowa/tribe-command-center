@@ -134,6 +134,23 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               📍 System: <strong style={{ color: 'var(--accent-cyan)' }}>{task.systemName}</strong>
               {task.assemblyType && <> &middot; {task.assemblyType}</>}
+              {task.scoutingSubtype && (
+                <span style={{
+                  marginLeft: 8, padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
+                  background: task.scoutingSubtype === 'enemy_scouting' ? 'rgba(239,68,68,0.12)' :
+                    task.scoutingSubtype === 'rift_scouting' ? 'rgba(234,179,8,0.12)' : 'rgba(168,85,247,0.12)',
+                  color: task.scoutingSubtype === 'enemy_scouting' ? '#ef4444' :
+                    task.scoutingSubtype === 'rift_scouting' ? '#eab308' : '#a855f7',
+                }}>
+                  {task.scoutingSubtype === 'resource_scouting' ? '⛏ Resources' :
+                    task.scoutingSubtype === 'rift_scouting' ? '🌀 Crude Rifts' : '🎯 Enemy Bases'}
+                </span>
+              )}
+              {task.targetLPoint && (
+                <span style={{ marginLeft: 6, fontSize: 10, color: '#818cf8' }}>
+                  Target: {task.targetLPoint}
+                </span>
+              )}
             </div>
           )}
 

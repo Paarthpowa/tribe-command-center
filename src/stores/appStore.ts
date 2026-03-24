@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone } from '../types';
-import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS } from '../data/mock';
+import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance } from '../types';
+import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE } from '../data/mock';
 import systemsBundleData from '../data/systems-bundle.json';
 
 /** Clearance hierarchy — higher index = more access */
@@ -40,6 +40,9 @@ interface AppState {
 
   /* Activity Feed */
   activities: ActivityEvent[];
+
+  /* Alliance */
+  alliance: Alliance | null;
 
   /* Computed helpers */
   currentMember: () => TribeMember | undefined;
@@ -86,6 +89,7 @@ export const useAppStore = create<AppState>()(
       systems: MOCK_SYSTEMS,
       goals: MOCK_GOALS,
       activities: [],
+      alliance: MOCK_ALLIANCE,
 
       currentMember: () => {
         const { walletAddress, members } = get();
@@ -307,7 +311,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 7,
+      version: 8,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -315,9 +319,10 @@ export const useAppStore = create<AppState>()(
         members: state.members,
         goals: state.goals,
         activities: state.activities,
+        alliance: state.alliance,
       }),
       migrate: (_persisted, version) => {
-        if (version < 7) return {};
+        if (version < 8) return {};
         return _persisted as Record<string, unknown>;
       },
     },

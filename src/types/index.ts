@@ -183,9 +183,14 @@ export type GoalStatus = 'planning' | 'active' | 'completed' | 'archived';
 export type GoalPriority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskType = 'deployment' | 'scouting' | 'resource' | 'defense' | 'logistics' | 'programming' | 'diplomacy' | 'other';
 
+/** Scouting sub-category for detailed scout missions */
+export type ScoutingSubtype = 'resource_scouting' | 'rift_scouting' | 'enemy_scouting';
+
 export interface Goal {
   id: string;
   tribeId: string;
+  /** Alliance this goal belongs to (cross-tribe cooperation) */
+  allianceId?: string;
   title: string;
   description: string;
   status: GoalStatus;
@@ -222,6 +227,10 @@ export interface Task {
   status: TaskStatus;
   /** Task category */
   taskType?: TaskType;
+  /** Scouting sub-type (only when taskType === 'scouting') */
+  scoutingSubtype?: ScoutingSubtype;
+  /** Target L-point for scouting tasks */
+  targetLPoint?: LPointId;
   assignedTo?: string;
   /** e.g. "Smart Gate", "Smart Storage Unit" */
   assemblyType?: string;
@@ -262,6 +271,32 @@ export interface Tribe {
   description: string;
   leaderAddress: string;
   memberCount: number;
+  createdAt: string;
+  /** Alliance this tribe belongs to */
+  allianceId?: string;
+}
+
+/* ── Alliances ── */
+
+export type AllianceRole = 'founder' | 'council' | 'member';
+
+export interface AllianceMember {
+  tribeId: string;
+  tribeName: string;
+  role: AllianceRole;
+  joinedAt: string;
+}
+
+export interface Alliance {
+  id: string;
+  name: string;
+  description: string;
+  /** Tag / short abbreviation shown in UI */
+  tag: string;
+  founderTribeId: string;
+  members: AllianceMember[];
+  /** Shared goals visible to all alliance tribes */
+  sharedGoalIds: string[];
   createdAt: string;
 }
 

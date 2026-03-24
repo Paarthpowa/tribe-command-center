@@ -92,6 +92,11 @@ export function GoalTile({ goal }: GoalTileProps) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <StatusBadge label={getStatusLabel(goal.status)} color={getStatusColor(goal.status)} />
+          {goal.allianceId && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, color: '#22d3ee', padding: '2px 6px', borderRadius: 4, background: 'rgba(34,211,238,0.12)' }}>
+              🤝 Alliance
+            </span>
+          )}
           {goal.classification !== 'normal' && (() => {
             const cls = CLASSIFICATION_STYLE[goal.classification];
             const ClsIcon = cls.icon!;

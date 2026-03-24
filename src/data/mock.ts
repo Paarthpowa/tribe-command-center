@@ -1,4 +1,4 @@
-import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem, WorldSystem } from '../types';
+import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem, WorldSystem, Alliance } from '../types';
 
 export const MOCK_TRIBE: Tribe = {
   id: 'tribe-alpha',
@@ -7,6 +7,7 @@ export const MOCK_TRIBE: Tribe = {
   leaderAddress: '0xalpha_leader_address',
   memberCount: 12,
   createdAt: '2026-03-15T00:00:00Z',
+  allianceId: 'alliance-frontier',
 };
 
 /* ── Placeholder World Systems (unused — real bundle loaded from systems-bundle.json) ── */
@@ -27,10 +28,42 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     threatLevel: 2,
     notes: 'Our home system. Main base cluster with 4 gate connections.',
     isHQ: true,
-    planetCount: 4,
+    planetCount: 5,
     bases: [
       { memberName: 'Commander Zara', energy: 4200, lPoint: 'P1-L4' },
       { memberName: 'Navigator Rex', energy: 3100, lPoint: 'P2-L3' },
+    ],
+    lagrangePoints: [
+      // Planet 1 — partially scouted, our main base area
+      { lPoint: 'P1-L1', status: 'empty', lastScouted: '2026-03-22T08:00:00Z' },
+      { lPoint: 'P1-L2', status: 'empty', lastScouted: '2026-03-22T08:00:00Z' },
+      { lPoint: 'P1-L3', status: 'resource', resources: ['Common Ore'], lastScouted: '2026-03-21T10:00:00Z' },
+      { lPoint: 'P1-L4', status: 'friendly', occupiedBy: 'Commander Zara', lastScouted: '2026-03-22T08:00:00Z' },
+      { lPoint: 'P1-L5', status: 'empty', lastScouted: '2026-03-20T14:00:00Z' },
+      // Planet 2 — Navigator Rex base
+      { lPoint: 'P2-L1', status: 'unknown' },
+      { lPoint: 'P2-L2', status: 'resource', resources: ['Metal-rich Ore'], lastScouted: '2026-03-19T16:00:00Z' },
+      { lPoint: 'P2-L3', status: 'friendly', occupiedBy: 'Navigator Rex', lastScouted: '2026-03-22T06:00:00Z' },
+      { lPoint: 'P2-L4', status: 'unknown' },
+      { lPoint: 'P2-L5', status: 'unknown' },
+      // Planet 3 — unscouted
+      { lPoint: 'P3-L1', status: 'unknown' },
+      { lPoint: 'P3-L2', status: 'unknown' },
+      { lPoint: 'P3-L3', status: 'unknown' },
+      { lPoint: 'P3-L4', status: 'unknown' },
+      { lPoint: 'P3-L5', status: 'unknown' },
+      // Planet 4 — partially scouted
+      { lPoint: 'P4-L1', status: 'empty', lastScouted: '2026-03-18T11:00:00Z' },
+      { lPoint: 'P4-L2', status: 'unknown' },
+      { lPoint: 'P4-L3', status: 'resource', resources: ['Common Ore', 'Carbonaceous Ore'], lastScouted: '2026-03-18T11:00:00Z' },
+      { lPoint: 'P4-L4', status: 'unknown' },
+      { lPoint: 'P4-L5', status: 'unknown' },
+      // Planet 5 — unscouted (new)
+      { lPoint: 'P5-L1', status: 'unknown' },
+      { lPoint: 'P5-L2', status: 'unknown' },
+      { lPoint: 'P5-L3', status: 'unknown' },
+      { lPoint: 'P5-L4', status: 'unknown' },
+      { lPoint: 'P5-L5', status: 'unknown' },
     ],
     lastScouted: '2026-03-22T08:00:00Z',
     scoutingLogs: [
@@ -293,5 +326,114 @@ export const MOCK_GOALS: Goal[] = [
       },
     ],
   },
+  {
+    id: 'goal-4',
+    tribeId: 'tribe-alpha',
+    title: 'ING-00K Full System Survey',
+    description: 'Complete scouting of all 25 Lagrange points across 5 planets in our home system. Identify resources for mining, crude rifts for fuel, and any enemy presence.',
+    classification: 'normal',
+    status: 'active',
+    priority: 'high',
+    createdBy: '0xplayer_c',
+    createdAt: '2026-03-21T00:00:00Z',
+    deadline: '2026-03-28T00:00:00Z',
+    systemIds: [30019789],
+    tasks: [
+      {
+        id: 'task-6',
+        goalId: 'goal-4',
+        title: 'Scout Planet 3 & 5 for Mineable Resources',
+        description: 'Survey all L-points on Planets 3 and 5 (10 points total). Mark any mining-viable resources — ore deposits, gas clouds, ice fields.',
+        status: 'open',
+        assignedTo: '0xplayer_c',
+        taskType: 'scouting',
+        scoutingSubtype: 'resource_scouting',
+        systemId: 30019789,
+        systemName: 'ING-00K',
+        targetLPoint: 'P3-L1',
+        subIndex: 1,
+        subTotal: 3,
+        requirements: [],
+        contributions: [],
+      },
+      {
+        id: 'task-7',
+        goalId: 'goal-4',
+        title: 'Locate Crude Rifts for Fuel Harvesting',
+        description: 'Scan L-points on Planets 2, 4 and 5 for crude rift activity. We need fuel sources close to HQ for Smart Assembly refueling.',
+        status: 'open',
+        taskType: 'scouting',
+        scoutingSubtype: 'rift_scouting',
+        systemId: 30019789,
+        systemName: 'ING-00K',
+        subIndex: 2,
+        subTotal: 3,
+        requirements: [],
+        contributions: [],
+      },
+      {
+        id: 'task-8',
+        goalId: 'goal-4',
+        title: 'Enemy Presence Check — All Unscouted L-Points',
+        description: 'Verify no enemy bases or hostile Network Nodes are set up in unscouted L-points. Priority: P3 and P5 which have never been checked.',
+        status: 'in_progress',
+        assignedTo: '0xplayer_c',
+        taskType: 'scouting',
+        scoutingSubtype: 'enemy_scouting',
+        systemId: 30019789,
+        systemName: 'ING-00K',
+        subIndex: 3,
+        subTotal: 3,
+        requirements: [],
+        contributions: [],
+      },
+    ],
+  },
+  {
+    id: 'goal-5',
+    tribeId: 'tribe-alpha',
+    allianceId: 'alliance-frontier',
+    title: '[Alliance] Frontier Coalition Trade Route',
+    description: 'Alliance-level operation: establish a shared trade route between Tribe Alpha (ING-00K) and Void Runners (E9G-J3K area). Joint gate deployment.',
+    classification: 'classified',
+    status: 'planning',
+    priority: 'medium',
+    createdBy: '0xalpha_leader_address',
+    createdAt: '2026-03-22T00:00:00Z',
+    deadline: '2026-04-10T00:00:00Z',
+    systemIds: [30019789, 30019793],
+    tasks: [
+      {
+        id: 'task-9',
+        goalId: 'goal-5',
+        title: 'Alliance Gate — Tribe Alpha Side (E9G-J3K)',
+        description: 'Deploy an alliance-cooperative Smart Gate in E9G-J3K, configured for both Tribe Alpha and Void Runners access.',
+        status: 'open',
+        assemblyType: 'Smart Gate',
+        taskType: 'deployment',
+        systemId: 30019793,
+        systemName: 'E9G-J3K',
+        requirements: [{ resource: 'Building Foam', amount: 46 }],
+        contributions: [],
+      },
+    ],
+  },
 ];
+
+/* ── Alliance ── */
+
+export const MOCK_ALLIANCE: Alliance = {
+  id: 'alliance-frontier',
+  name: 'Frontier Coalition',
+  description: 'An alliance of independent tribes cooperating on trade routes, shared defense, and territorial expansion in the Frontier zone.',
+  tag: 'FC',
+  founderTribeId: 'tribe-alpha',
+  members: [
+    { tribeId: 'tribe-alpha', tribeName: 'Tribe Alpha', role: 'founder', joinedAt: '2026-03-20T00:00:00Z' },
+    { tribeId: 'tribe-void-runners', tribeName: 'Void Runners', role: 'council', joinedAt: '2026-03-21T00:00:00Z' },
+    { tribeId: 'tribe-deep-miners', tribeName: 'Deep Miners Guild', role: 'member', joinedAt: '2026-03-22T00:00:00Z' },
+  ],
+  sharedGoalIds: ['goal-5'],
+  createdAt: '2026-03-20T00:00:00Z',
+};
 

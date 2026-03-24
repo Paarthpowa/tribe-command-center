@@ -8,6 +8,7 @@ import { CreateGoalPage } from './pages/CreateGoalPage';
 import { MembersPage } from './pages/MembersPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { IntelPage } from './pages/IntelPage';
+import { AlliancePage } from './pages/AlliancePage';
 import { LoginPage } from './pages/LoginPage';
 import { useAppStore } from './stores/appStore';
 
@@ -59,6 +60,7 @@ function App() {
         <Route path="/members" element={<MembersPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/intel" element={<IntelPage />} />
+        <Route path="/alliance" element={<AlliancePage />} />
       </Routes>
     </BrowserRouter>
   );
