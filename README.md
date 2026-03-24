@@ -1,73 +1,35 @@
-# React + TypeScript + Vite
+# Tribe Command Center
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **EVE Frontier × Sui Hackathon 2026** — A Toolkit for Civilization
 
-Currently, two official plugins are available:
+Tribe Command Center is a coordination platform for EVE Frontier tribes. It helps player groups manage territory, plan operations, track resources, and coordinate across a galaxy of 24,000+ solar systems.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Territory Intel** — Claim solar systems, track Lagrange points (L1–L5), log scouting reports
+- **Interactive Star Map** — Canvas-rendered 2D map of 4,800+ real world systems with zoom/pan
+- **Goals & Tasks** — Create strategic goals, break into tasks, pledge & deliver resources
+- **Member Management** — Approve/reject members, set clearance levels, reputation tracking
+- **Leaderboard** — Reputation scoring based on pledge reliability
+- **System Detail Panel** — Deep drill-down into each system: bases, scouts, resources, dangers, notes
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend:** React 19, TypeScript, Vite 8
+- **UI:** Radix UI (dark theme) + Tailwind CSS v4
+- **State:** Zustand 5 with localStorage persistence
+- **Blockchain:** @evefrontier/dapp-kit, @mysten/sui (Sui integration)
+- **Deploy:** Cloudflare Pages (auto-deploy from `master`)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev        # Start dev server
+npm run build      # TypeScript check + production build
+npm run preview    # Preview production build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Documentation
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+See [DEVLOG.md](DEVLOG.md) for detailed development log, architecture overview, session history, and roadmap.
