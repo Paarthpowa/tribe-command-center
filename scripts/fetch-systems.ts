@@ -19,7 +19,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const API_BASE = 'https://blockchain-gateway-stillness.live.tech.evefrontier.com/v2';
+const API_BASE = 'https://world-api-stillness.live.tech.evefrontier.com/v2';
 const LIMIT = 100;
 
 interface ApiSystem {
