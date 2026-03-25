@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, LayoutDashboard, Plus, Users, Trophy, Globe, LogOut, Handshake } from 'lucide-react';
+import { Shield, LayoutDashboard, Plus, Users, Trophy, Globe, LogOut, Handshake, Newspaper, Rocket } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 
 export function Navbar() {
@@ -9,6 +9,8 @@ export function Navbar() {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/intel', label: 'Intel', icon: Globe },
+    { path: '/news', label: 'News', icon: Newspaper },
+    { path: '/fleets', label: 'Fleets', icon: Rocket },
     { path: '/alliance', label: 'Alliance', icon: Handshake },
     { path: '/create', label: 'New Goal', icon: Plus },
     { path: '/members', label: 'Members', icon: Users },

@@ -300,7 +300,7 @@ export interface Alliance {
 }
 
 /* ── Activity Feed ── */
-export type ActivityType = 'system_claimed' | 'system_unclaimed' | 'base_added' | 'scout_report' | 'goal_created' | 'pledge_made' | 'member_joined' | 'hq_set' | 'threat_alert' | 'lpoint_updated';
+export type ActivityType = 'system_claimed' | 'system_unclaimed' | 'base_added' | 'scout_report' | 'goal_created' | 'pledge_made' | 'member_joined' | 'hq_set' | 'threat_alert' | 'lpoint_updated' | 'fleet_created' | 'fleet_rsvp';
 
 export interface ActivityEvent {
   id: string;
@@ -309,4 +309,39 @@ export interface ActivityEvent {
   memberName?: string;
   systemName?: string;
   timestamp: string;
+}
+
+/* ── Fleet Operations ── */
+
+export type FleetRSVPStatus = 'coming' | 'maybe' | 'not_coming';
+
+export interface FleetRSVP {
+  memberAddress: string;
+  memberName: string;
+  status: FleetRSVPStatus;
+  timestamp: string;
+}
+
+export interface FleetOperation {
+  id: string;
+  tribeId: string;
+  title: string;
+  description: string;
+  /** ISO date string for the operation */
+  date: string;
+  /** Start time, e.g. "19:00" */
+  startTime: string;
+  /** Approximate duration in minutes */
+  durationMinutes: number;
+  /** Goal or objective of this fleet op */
+  goal: string;
+  /** Optional system where the op takes place */
+  systemId?: number;
+  systemName?: string;
+  /** Who created this fleet op */
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  /** Member RSVPs */
+  rsvps: FleetRSVP[];
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance } from '../types';
+import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus } from '../types';
 import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE } from '../data/mock';
 import systemsBundleData from '../data/systems-bundle.json';
 
@@ -44,6 +44,9 @@ interface AppState {
   /* Alliance */
   alliance: Alliance | null;
 
+  /* Fleet Operations */
+  fleets: FleetOperation[];
+
   /* Computed helpers */
   currentMember: () => TribeMember | undefined;
   visibleGoals: () => Goal[];
@@ -76,6 +79,11 @@ interface AppState {
   updateOrbitalZone: (systemId: number, zoneName: string, updates: Partial<OrbitalZone>) => void;
   removeOrbitalZone: (systemId: number, zoneName: string) => void;
   addActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
+
+  /* Fleet Operations */
+  addFleet: (fleet: FleetOperation) => void;
+  rsvpFleet: (fleetId: string, memberAddress: string, memberName: string, status: FleetRSVPStatus) => void;
+  deleteFleet: (fleetId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -91,6 +99,7 @@ export const useAppStore = create<AppState>()(
       goals: MOCK_GOALS,
       activities: [],
       alliance: MOCK_ALLIANCE,
+      fleets: [],
 
       currentMember: () => {
         const { walletAddress, members } = get();
@@ -369,10 +378,31 @@ export const useAppStore = create<AppState>()(
             ...s.activities,
           ].slice(0, 200),
         })),
+
+      addFleet: (fleet) => {
+        set((s) => ({ fleets: [...s.fleets, fleet] }));
+        get().addActivity({ type: 'fleet_created', description: `Fleet op "${fleet.title}" created for ${fleet.date}`, memberName: fleet.createdByName });
+      },
+
+      rsvpFleet: (fleetId, memberAddress, memberName, status) =>
+        set((s) => ({
+          fleets: s.fleets.map((f) => {
+            if (f.id !== fleetId) return f;
+            const existing = f.rsvps.findIndex((r) => r.memberAddress === memberAddress);
+            const rsvp = { memberAddress, memberName, status, timestamp: new Date().toISOString() };
+            const rsvps = existing >= 0
+              ? f.rsvps.map((r, i) => (i === existing ? rsvp : r))
+              : [...f.rsvps, rsvp];
+            return { ...f, rsvps };
+          }),
+        })),
+
+      deleteFleet: (fleetId) =>
+        set((s) => ({ fleets: s.fleets.filter((f) => f.id !== fleetId) })),
     }),
     {
       name: 'tribe-command-center',
-      version: 9,
+      version: 10,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -381,9 +411,10 @@ export const useAppStore = create<AppState>()(
         goals: state.goals,
         activities: state.activities,
         alliance: state.alliance,
+        fleets: state.fleets,
       }),
       migrate: (_persisted, version) => {
-        if (version < 9) return {};
+        if (version < 10) return {};
         return _persisted as Record<string, unknown>;
       },
     },

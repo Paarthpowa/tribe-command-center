@@ -50,8 +50,8 @@ export function StarMap({
   const containerRef = useRef<HTMLDivElement>(null);
 
   /* Normalized display coordinates — raw coords span ~14 units but node radii
-     are 13-18 → always overlap.  Normalize to ~400-unit spread so nodes are
-     well-separated at zoom 1. */
+     are 13-18 → always overlap.  Normalize to ~400-unit spread, then apply
+     force-directed repulsion so nearby nodes push apart. */
   const displaySystems = useMemo(() => {
     if (systems.length === 0) return systems;
     const xs = systems.map((s) => s.coordinates.x);
@@ -62,12 +62,45 @@ export function StarMap({
     const cy = (minY + maxY) / 2;
     const spread = Math.max(maxX - minX, maxY - minY, 1);
     const scale = 400 / spread;
-    return systems.map((s) => ({
+
+    // Start with normalized positions
+    const pos = systems.map((s) => ({
+      x: (s.coordinates.x - cx) * scale,
+      y: (s.coordinates.y - cy) * scale,
+    }));
+
+    // Force-directed repulsion: push overlapping nodes apart
+    const minDist = 60; // minimum distance between any two system centres
+    for (let iter = 0; iter < 50; iter++) {
+      let moved = false;
+      for (let i = 0; i < pos.length; i++) {
+        for (let j = i + 1; j < pos.length; j++) {
+          const dx = pos[j].x - pos[i].x;
+          const dy = pos[j].y - pos[i].y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < minDist && dist > 0.01) {
+            const push = (minDist - dist) / 2 + 1;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            pos[i].x -= nx * push;
+            pos[i].y -= ny * push;
+            pos[j].x += nx * push;
+            pos[j].y += ny * push;
+            moved = true;
+          } else if (dist <= 0.01) {
+            // Coincident — nudge apart
+            pos[i].x -= 15;
+            pos[j].x += 15;
+            moved = true;
+          }
+        }
+      }
+      if (!moved) break;
+    }
+
+    return systems.map((s, i) => ({
       ...s,
-      coordinates: {
-        x: (s.coordinates.x - cx) * scale,
-        y: (s.coordinates.y - cy) * scale,
-      },
+      coordinates: { x: pos[i].x, y: pos[i].y },
     }));
   }, [systems]);
 
@@ -265,8 +298,7 @@ export function StarMap({
       const color = CATEGORY_COLORS[sys.category];
       const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, realW);
 
-      /* Bigger nodes: 13 base, 15 with bases, 18 for HQ (was 5/7) */
-      const baseR = sys.isHQ ? 18 : (sys.bases?.length ?? 0) > 0 ? 15 : 13;
+      const baseR = sys.isHQ ? 14 : (sys.bases?.length ?? 0) > 0 ? 11 : 9;
       const r = baseR * camera.zoom;
       const isHov = hovered?.id === sys.id;
       const isHL = highlightSystemIds?.includes(sys.id);

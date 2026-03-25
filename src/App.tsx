@@ -9,6 +9,8 @@ import { MembersPage } from './pages/MembersPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { IntelPage } from './pages/IntelPage';
 import { AlliancePage } from './pages/AlliancePage';
+import { NewsPage } from './pages/NewsPage';
+import { FleetsPage } from './pages/FleetsPage';
 import { LoginPage } from './pages/LoginPage';
 import { useAppStore } from './stores/appStore';
 
@@ -61,6 +63,8 @@ function App() {
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/intel" element={<IntelPage />} />
         <Route path="/alliance" element={<AlliancePage />} />
+        <Route path="/news" element={<NewsPage />} />
+        <Route path="/fleets" element={<FleetsPage />} />
       </Routes>
     </BrowserRouter>
   );
