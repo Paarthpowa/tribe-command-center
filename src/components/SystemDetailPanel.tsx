@@ -36,11 +36,10 @@ function generateLPoints(planetCount: number): LPointId[] {
 }
 
 const ZONE_STATUS_CONFIG = {
-  unknown: { label: 'Unknown', color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
+  unknown: { label: 'Not Scouted', color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
   empty: { label: 'Empty', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
   friendly: { label: 'Friendly', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
   enemy: { label: 'Enemy', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
-  contested: { label: 'Contested', color: '#eab308', bg: 'rgba(234,179,8,0.12)' },
 } as const;
 
 const CATEGORY_CONFIG: Record<SystemCategory, { label: string; color: string; icon: typeof Shield }> = {
@@ -292,11 +291,6 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
                   {b.lPoint && (
                     <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}>
                       {b.lPoint}
-                    </span>
-                  )}
-                  {b.energy != null && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#22d3ee', fontSize: 11 }}>
-                      <Zap size={11} /> {b.energy.toLocaleString()}
                     </span>
                   )}
                   <button onClick={() => removeBase(system.id, b.memberName)} style={{
@@ -574,7 +568,6 @@ function AddBaseForm({ systemId, existingBases, lPoints, onAdd }: {
   const { addBase } = useAppStore();
   const [name, setName] = useState('');
   const [lPoint, setLPoint] = useState<LPointId | ''>('');
-  const [energy, setEnergy] = useState('');
   const [isEnemy, setIsEnemy] = useState(false);
 
   const handleSubmit = () => {
@@ -584,12 +577,10 @@ function AddBaseForm({ systemId, existingBases, lPoints, onAdd }: {
     addBase(systemId, {
       memberName: trimmed,
       lPoint: lPoint || undefined,
-      energy: energy ? Number(energy) : undefined,
       isEnemy,
     });
     setName('');
     setLPoint('');
-    setEnergy('');
     setIsEnemy(false);
     onAdd();
   };
@@ -614,18 +605,11 @@ function AddBaseForm({ systemId, existingBases, lPoints, onAdd }: {
           <select
             value={lPoint}
             onChange={e => setLPoint(e.target.value as LPointId | '')}
-            style={{ ...inputStyle, flex: 1 }}
+            style={{ ...inputStyle, ...selectDarkStyle, flex: 1 }}
           >
             <option value="">L-Point...</option>
             {lPoints.map(lp => <option key={lp} value={lp}>{lp}</option>)}
           </select>
-          <input
-            type="number"
-            value={energy}
-            onChange={e => setEnergy(e.target.value)}
-            placeholder="Energy"
-            style={{ ...inputStyle, flex: 1 }}
-          />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{
@@ -716,7 +700,7 @@ function ScoutReportForm({ systemId, lPoints, onSubmit }: { systemId: number; lP
           <select
             value={lPoint}
             onChange={e => setLPoint(e.target.value as LPointId | '')}
-            style={{ ...inputStyle, flex: 1 }}
+            style={{ ...inputStyle, ...selectDarkStyle, flex: 1 }}
           >
             <option value="">L-Point (optional)...</option>
             {lPoints.map(lp => <option key={lp} value={lp}>{lp}</option>)}
@@ -915,7 +899,7 @@ function AddOrbitalZoneForm({ systemId, existing, onAdd }: {
         <select
           value={selectedName}
           onChange={e => setSelectedName(e.target.value)}
-          style={{ ...inputStyle }}
+          style={{ ...inputStyle, ...selectDarkStyle }}
         >
           <option value="">Select zone...</option>
           {availableZones.map(z => (
@@ -957,6 +941,13 @@ const inputStyle: React.CSSProperties = {
   padding: '7px 10px', borderRadius: 6, fontSize: 12,
   background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle)',
   color: 'var(--text-primary)', outline: 'none', width: '100%',
+};
+
+/* Dark-theme friendly select styling */
+const selectDarkStyle: React.CSSProperties = {
+  colorScheme: 'dark',
+  WebkitAppearance: 'none',
+  appearance: 'auto',
 };
 
 function actionBtnStyle(color: string): React.CSSProperties {

@@ -109,7 +109,7 @@ export type LPointId = string;
 export interface LagrangePoint {
   lPoint: LPointId;
   /** What's known about this Lagrange point */
-  status: 'unknown' | 'empty' | 'friendly' | 'enemy' | 'contested';
+  status: 'unknown' | 'empty' | 'friendly' | 'enemy';
   /** Who has a base (Network Node) here */
   occupiedBy?: string;
   /** Notes from scouts */
@@ -344,4 +344,30 @@ export interface FleetOperation {
   createdAt: string;
   /** Member RSVPs */
   rsvps: FleetRSVP[];
+}
+
+/* ── Feedback ── */
+
+export type FeedbackCategory = 'general' | 'member' | 'goal' | 'suggestion' | 'issue';
+
+export interface FeedbackEntry {
+  id: string;
+  tribeId: string;
+  category: FeedbackCategory;
+  /** The feedback message */
+  message: string;
+  /** Optional: which member this feedback is about */
+  targetMemberId?: string;
+  targetMemberName?: string;
+  /** Optional: which goal this feedback is about */
+  targetGoalId?: string;
+  targetGoalTitle?: string;
+  /** Whether posted anonymously */
+  anonymous: boolean;
+  /** Author info (empty if anonymous) */
+  authorAddress?: string;
+  authorName?: string;
+  createdAt: string;
+  /** Upvotes from other members (addresses) */
+  upvotes: string[];
 }

@@ -12,7 +12,6 @@ const CATEGORY_COLORS: Record<SystemCategory, string> = {
   unknown: '#6b7280',
 };
 
-/* ── Helpers ── */
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -20,23 +19,94 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function seededRandom(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return s / 2147483647;
-  };
-}
-
 interface StarMapProps {
   systems: TribeSystem[];
   goals?: Goal[];
-  /** System IDs to highlight (numeric) */
   highlightSystemIds?: number[];
-  /** Called when a system node is clicked */
   onSystemClick?: (system: TribeSystem) => void;
-  /** Height of the canvas */
   height?: number;
+}
+
+/**
+ * Deterministic radial BFS layout: HQ at center, connected systems placed in
+ * concentric rings by graph distance.  Angles derived from original coordinates
+ * so the spatial arrangement is consistent across visits for visual memory.
+ */
+function computeLayout(
+  systems: TribeSystem[],
+): Map<number, { x: number; y: number }> {
+  const positions = new Map<number, { x: number; y: number }>();
+  if (systems.length === 0) return positions;
+
+  const hq = systems.find((s) => s.isHQ) ?? systems[0];
+  const systemMap = new Map(systems.map((s) => [s.id, s]));
+
+  positions.set(hq.id, { x: 0, y: 0 });
+
+  // BFS to determine depth from HQ
+  const depth = new Map<number, number>([[hq.id, 0]]);
+  const queue = [hq.id];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const sys = systemMap.get(current);
+    if (!sys) continue;
+    for (const connId of sys.connections ?? []) {
+      if (systemMap.has(connId) && !depth.has(connId)) {
+        depth.set(connId, depth.get(current)! + 1);
+        queue.push(connId);
+      }
+    }
+  }
+
+  // Group by depth, sort by ID for determinism
+  const layers = new Map<number, number[]>();
+  for (const [id, d] of depth) {
+    if (d === 0) continue;
+    if (!layers.has(d)) layers.set(d, []);
+    layers.get(d)!.push(id);
+  }
+  for (const ids of layers.values()) ids.sort((a, b) => a - b);
+
+  const RING_RADIUS = 180;
+
+  for (const [d, ids] of layers) {
+    const radius = d * RING_RADIUS;
+    // Angles from HQ based on original coordinates → consistent spatial memory
+    const items = ids.map((id) => {
+      const sys = systemMap.get(id)!;
+      const dx = sys.coordinates.x - hq.coordinates.x;
+      const dy = sys.coordinates.y - hq.coordinates.y;
+      return { id, angle: Math.atan2(dy, dx) };
+    });
+    items.sort((a, b) => a.angle - b.angle);
+
+    // Enforce minimum angular separation (36°)
+    const MIN_SEP = Math.PI / 5;
+    for (let i = 1; i < items.length; i++) {
+      if (items[i].angle - items[i - 1].angle < MIN_SEP) {
+        items[i].angle = items[i - 1].angle + MIN_SEP;
+      }
+    }
+
+    for (const { id, angle } of items) {
+      positions.set(id, {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      });
+    }
+  }
+
+  // Place any disconnected systems in an outer ring
+  let dAngle = 0;
+  for (const sys of systems) {
+    if (!positions.has(sys.id)) {
+      const r = ((layers.size || 0) + 1) * RING_RADIUS;
+      positions.set(sys.id, { x: Math.cos(dAngle) * r, y: Math.sin(dAngle) * r });
+      dAngle += Math.PI / 3;
+    }
+  }
+
+  return positions;
 }
 
 export function StarMap({
@@ -49,67 +119,23 @@ export function StarMap({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  /* Normalized display coordinates — raw coords span ~14 units but node radii
-     are 13-18 → always overlap.  Normalize to ~400-unit spread, then apply
-     force-directed repulsion so nearby nodes push apart. */
-  const displaySystems = useMemo(() => {
-    if (systems.length === 0) return systems;
-    const xs = systems.map((s) => s.coordinates.x);
-    const ys = systems.map((s) => s.coordinates.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    const spread = Math.max(maxX - minX, maxY - minY, 1);
-    const scale = 400 / spread;
+  /* Deterministic positions — computed once per system set */
+  const layoutPositions = useMemo(() => computeLayout(systems), [systems]);
+  const displaySystems = useMemo(
+    () =>
+      systems.map((s) => ({
+        ...s,
+        coordinates: layoutPositions.get(s.id) ?? s.coordinates,
+      })),
+    [systems, layoutPositions],
+  );
 
-    // Start with normalized positions
-    const pos = systems.map((s) => ({
-      x: (s.coordinates.x - cx) * scale,
-      y: (s.coordinates.y - cy) * scale,
-    }));
-
-    // Force-directed repulsion: push overlapping nodes apart
-    const minDist = 60; // minimum distance between any two system centres
-    for (let iter = 0; iter < 50; iter++) {
-      let moved = false;
-      for (let i = 0; i < pos.length; i++) {
-        for (let j = i + 1; j < pos.length; j++) {
-          const dx = pos[j].x - pos[i].x;
-          const dy = pos[j].y - pos[i].y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < minDist && dist > 0.01) {
-            const push = (minDist - dist) / 2 + 1;
-            const nx = dx / dist;
-            const ny = dy / dist;
-            pos[i].x -= nx * push;
-            pos[i].y -= ny * push;
-            pos[j].x += nx * push;
-            pos[j].y += ny * push;
-            moved = true;
-          } else if (dist <= 0.01) {
-            // Coincident — nudge apart
-            pos[i].x -= 15;
-            pos[j].x += 15;
-            moved = true;
-          }
-        }
-      }
-      if (!moved) break;
-    }
-
-    return systems.map((s, i) => ({
-      ...s,
-      coordinates: { x: pos[i].x, y: pos[i].y },
-    }));
-  }, [systems]);
-
-  /* Camera: state drives rendering, ref provides fresh values in callbacks */
+  /* Camera */
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
 
-  /* Drag state lives entirely in refs — eliminates stale-closure panning bugs */
+  /* Drag state in refs to avoid stale closures */
   const dragRef = useRef<{
     mouseX: number;
     mouseY: number;
@@ -122,7 +148,7 @@ export function StarMap({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [, setTick] = useState(0);
 
-  /* World → screen coordinate transform */
+  /* World → screen */
   const toScreen = useCallback(
     (wx: number, wy: number, w: number) => ({
       sx: (wx + camera.x) * camera.zoom + w / 2,
@@ -130,20 +156,6 @@ export function StarMap({
     }),
     [camera, height],
   );
-
-  /* Background stars (deterministic, centered on normalized space) */
-  const bgStars = useRef<{ x: number; y: number; r: number; b: number }[]>([]);
-  if (bgStars.current.length === 0) {
-    const rng = seededRandom(42);
-    for (let i = 0; i < 400; i++) {
-      bgStars.current.push({
-        x: rng() * 800 - 400,
-        y: rng() * 800 - 400,
-        r: rng() * 1.2 + 0.3,
-        b: rng() * 0.5 + 0.15,
-      });
-    }
-  }
 
   /* System → goals lookup */
   const systemGoals = new Map<number, Goal[]>();
@@ -157,7 +169,7 @@ export function StarMap({
 
   const systemMap = new Map(displaySystems.map((s) => [s.id, s]));
 
-  /* ── Animation tick (~15 fps, only when needed) ── */
+  /* Animation tick for HQ pulse, rift rings, danger glow */
   const hasAnimations = displaySystems.some(
     (s) => (s.riftSightings?.length ?? 0) > 0 || s.isHQ || (s.threatLevel ?? 0) >= 7,
   );
@@ -177,25 +189,18 @@ export function StarMap({
     const w = canvas.width;
     const h = canvas.height;
     const dpr = window.devicePixelRatio || 1;
-
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
     const realW = w / dpr;
     const realH = h / dpr;
 
-    /* Background */
-    const bgGrad = ctx.createRadialGradient(
-      realW / 2, realH / 2, 0,
-      realW / 2, realH / 2, Math.max(realW, realH) / 1.5,
-    );
-    bgGrad.addColorStop(0, '#0c0e1a');
-    bgGrad.addColorStop(1, '#060810');
-    ctx.fillStyle = bgGrad;
+    /* Clean dark background */
+    ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, realW, realH);
 
-    /* Frustum culling bounds (world-space) with margin */
-    const margin = 80 / camera.zoom;
+    /* Frustum culling bounds */
+    const margin = 100 / camera.zoom;
     const vL = -camera.x - realW / (2 * camera.zoom) - margin;
     const vR = -camera.x + realW / (2 * camera.zoom) + margin;
     const vT = -camera.y - realH / (2 * camera.zoom) - margin;
@@ -203,93 +208,84 @@ export function StarMap({
     const vis = (wx: number, wy: number) =>
       wx >= vL && wx <= vR && wy >= vT && wy <= vB;
 
-    /* Background stars */
-    bgStars.current.forEach((star) => {
-      if (!vis(star.x, star.y)) return;
-      const { sx, sy } = toScreen(star.x, star.y, realW);
-      ctx.beginPath();
-      ctx.arc(sx, sy, star.r * camera.zoom * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(180,190,220,${star.b})`;
-      ctx.fill();
-    });
-
-    /* Grid dots — skip at very low zoom */
-    if (camera.zoom >= 0.5) {
-      ctx.fillStyle = 'rgba(100,120,160,0.06)';
-      const step = 50;
+    /* Subtle dot grid for spatial reference */
+    if (camera.zoom >= 0.4) {
+      ctx.fillStyle = 'rgba(100,120,160,0.08)';
+      const step = 60;
       const gx0 = Math.floor(vL / step) * step;
       const gy0 = Math.floor(vT / step) * step;
       for (let gx = gx0; gx <= vR; gx += step) {
         for (let gy = gy0; gy <= vB; gy += step) {
           const { sx, sy } = toScreen(gx, gy, realW);
           ctx.beginPath();
-          ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+          ctx.arc(sx, sy, 1, 0, Math.PI * 2);
           ctx.fill();
         }
       }
     }
 
-    /* Connection lines */
-    const drawn = new Set<string>();
+    /* Concentric ring guides (depth rings) */
+    const center = toScreen(0, 0, realW);
+    ctx.strokeStyle = 'rgba(100,120,160,0.06)';
+    ctx.lineWidth = 1;
+    for (let ring = 1; ring <= 3; ring++) {
+      const r = ring * 180 * camera.zoom;
+      ctx.beginPath();
+      ctx.arc(center.sx, center.sy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    /* ── Gate connection lines ── */
+    const drawnEdges = new Set<string>();
     displaySystems.forEach((sys) => {
       sys.connections?.forEach((tid) => {
         const key = sys.id < tid ? `${sys.id}-${tid}` : `${tid}-${sys.id}`;
-        if (drawn.has(key)) return;
-        drawn.add(key);
+        if (drawnEdges.has(key)) return;
+        drawnEdges.add(key);
 
         const target = systemMap.get(tid);
         if (!target) return;
-
-        // Skip if both endpoints off-screen
         if (
           !vis(sys.coordinates.x, sys.coordinates.y) &&
           !vis(target.coordinates.x, target.coordinates.y)
-        ) return;
+        )
+          return;
 
         const from = toScreen(sys.coordinates.x, sys.coordinates.y, realW);
         const to = toScreen(target.coordinates.x, target.coordinates.y, realW);
 
-        const hl =
+        const isHL =
           highlightSystemIds?.includes(sys.id) &&
           highlightSystemIds?.includes(tid);
 
+        /* Connection line */
         ctx.beginPath();
         ctx.moveTo(from.sx, from.sy);
         ctx.lineTo(to.sx, to.sy);
-        ctx.strokeStyle = hl
-          ? 'rgba(99,102,241,0.5)'
-          : 'rgba(100,120,160,0.12)';
-        ctx.lineWidth = hl ? 2 : 1;
-        ctx.setLineDash(hl ? [] : [4, 4]);
+        ctx.strokeStyle = isHL
+          ? 'rgba(99,102,241,0.6)'
+          : 'rgba(140,160,200,0.2)';
+        ctx.lineWidth = isHL ? 2.5 : 1.5;
         ctx.stroke();
-        ctx.setLineDash([]);
+
+        /* Gate diamond at midpoint */
+        if (camera.zoom >= 0.5) {
+          const mx = (from.sx + to.sx) / 2;
+          const my = (from.sy + to.sy) / 2;
+          const ds = 4 * camera.zoom;
+          ctx.beginPath();
+          ctx.moveTo(mx, my - ds);
+          ctx.lineTo(mx + ds, my);
+          ctx.lineTo(mx, my + ds);
+          ctx.lineTo(mx - ds, my);
+          ctx.closePath();
+          ctx.fillStyle = isHL
+            ? 'rgba(99,102,241,0.5)'
+            : 'rgba(140,160,200,0.25)';
+          ctx.fill();
+        }
       });
     });
-
-    /* Territory fill — core systems */
-    const cores = displaySystems.filter((s) => s.category === 'core');
-    if (cores.length >= 2) {
-      const pad = 50 * camera.zoom;
-      ctx.beginPath();
-      cores.forEach((s, i) => {
-        const { sx, sy } = toScreen(s.coordinates.x, s.coordinates.y, realW);
-        i === 0 ? ctx.moveTo(sx, sy - pad) : ctx.lineTo(sx, sy - pad);
-      });
-      const last = toScreen(
-        cores[cores.length - 1].coordinates.x,
-        cores[cores.length - 1].coordinates.y,
-        realW,
-      );
-      const first = toScreen(cores[0].coordinates.x, cores[0].coordinates.y, realW);
-      ctx.lineTo(last.sx + pad, last.sy + pad);
-      ctx.lineTo(first.sx - pad, first.sy + pad);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(34,197,94,0.03)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(34,197,94,0.08)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
 
     /* ── System nodes ── */
     displaySystems.forEach((sys) => {
@@ -298,16 +294,16 @@ export function StarMap({
       const color = CATEGORY_COLORS[sys.category];
       const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, realW);
 
-      const baseR = sys.isHQ ? 14 : (sys.bases?.length ?? 0) > 0 ? 11 : 9;
+      const baseR = sys.isHQ ? 18 : (sys.bases?.length ?? 0) > 0 ? 14 : 11;
       const r = baseR * camera.zoom;
       const isHov = hovered?.id === sys.id;
       const isHL = highlightSystemIds?.includes(sys.id);
       const hasEnemy = sys.bases?.some((b) => b.isEnemy);
 
       /* LOD: tiny dots only at very low zoom */
-      if (camera.zoom < 0.3) {
+      if (camera.zoom < 0.25) {
         ctx.beginPath();
-        ctx.arc(sx, sy, Math.max(2, r * 0.4), 0, Math.PI * 2);
+        ctx.arc(sx, sy, Math.max(2, r * 0.35), 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
         return;
@@ -315,9 +311,9 @@ export function StarMap({
 
       /* Outer glow on hover / highlight */
       if (isHov || isHL) {
-        const gr = r * 3.5;
-        const glow = ctx.createRadialGradient(sx, sy, r * 0.5, sx, sy, gr);
-        glow.addColorStop(0, hexToRgba(color, 0.3));
+        const gr = r * 3;
+        const glow = ctx.createRadialGradient(sx, sy, r * 0.3, sx, sy, gr);
+        glow.addColorStop(0, hexToRgba(color, 0.25));
         glow.addColorStop(1, hexToRgba(color, 0));
         ctx.beginPath();
         ctx.arc(sx, sy, gr, 0, Math.PI * 2);
@@ -325,12 +321,12 @@ export function StarMap({
         ctx.fill();
       }
 
-      /* HQ: pulsing golden ring + star icon */
+      /* HQ: pulsing golden ring + star */
       if (sys.isHQ) {
         const pulse = (Math.sin(Date.now() / 800) + 1) / 2;
         ctx.beginPath();
-        ctx.arc(sx, sy, r * (1.6 + pulse * 0.3), 0, Math.PI * 2);
-        ctx.strokeStyle = hexToRgba('#fbbf24', 0.4 + pulse * 0.3);
+        ctx.arc(sx, sy, r * (1.5 + pulse * 0.2), 0, Math.PI * 2);
+        ctx.strokeStyle = hexToRgba('#fbbf24', 0.35 + pulse * 0.25);
         ctx.lineWidth = 2.5;
         ctx.stroke();
         if (camera.zoom >= 0.5) {
@@ -344,7 +340,7 @@ export function StarMap({
       /* Enemy base: red dashed ring */
       if (hasEnemy) {
         ctx.beginPath();
-        ctx.arc(sx, sy, r * 1.4, 0, Math.PI * 2);
+        ctx.arc(sx, sy, r * 1.35, 0, Math.PI * 2);
         ctx.setLineDash([3, 3]);
         ctx.strokeStyle = 'rgba(239,68,68,0.6)';
         ctx.lineWidth = 1.5;
@@ -352,19 +348,17 @@ export function StarMap({
         ctx.setLineDash([]);
       }
 
-      /* Danger alert: pulsing red glow for high-threat systems (threat >= 7) */
+      /* Danger glow for high-threat (>= 7) */
       if ((sys.threatLevel ?? 0) >= 7) {
         const dp = (Math.sin(Date.now() / 600) + 1) / 2;
-        const dangerR = r * (2.0 + dp * 1.0);
+        const dangerR = r * (1.8 + dp * 0.8);
         const dangerGlow = ctx.createRadialGradient(sx, sy, r, sx, sy, dangerR);
-        dangerGlow.addColorStop(0, `rgba(239,68,68,${0.15 + dp * 0.1})`);
+        dangerGlow.addColorStop(0, `rgba(239,68,68,${0.12 + dp * 0.08})`);
         dangerGlow.addColorStop(1, 'rgba(239,68,68,0)');
         ctx.beginPath();
         ctx.arc(sx, sy, dangerR, 0, Math.PI * 2);
         ctx.fillStyle = dangerGlow;
         ctx.fill();
-
-        /* Warning triangle icon at top */
         if (camera.zoom >= 0.5) {
           ctx.font = `${10 * camera.zoom}px system-ui`;
           ctx.fillStyle = `rgba(239,68,68,${0.7 + dp * 0.3})`;
@@ -377,50 +371,51 @@ export function StarMap({
       if (sys.riftSightings?.length) {
         const p = (Date.now() / 1500) % 1;
         ctx.beginPath();
-        ctx.arc(sx, sy, r * (1.5 + p * 2), 0, Math.PI * 2);
-        ctx.strokeStyle = hexToRgba('#a855f7', 0.3 * (1 - p));
+        ctx.arc(sx, sy, r * (1.4 + p * 1.8), 0, Math.PI * 2);
+        ctx.strokeStyle = hexToRgba('#a855f7', 0.25 * (1 - p));
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
-      /* Main dot with radial gradient */
-      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
-      grad.addColorStop(0, hexToRgba(color, 1));
-      grad.addColorStop(0.6, hexToRgba(color, 0.8));
-      grad.addColorStop(1, hexToRgba(color, 0.15));
+      /* Node: filled circle with colored border */
       ctx.beginPath();
       ctx.arc(sx, sy, r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
+      ctx.fillStyle = hexToRgba(color, 0.15);
       ctx.fill();
+      ctx.strokeStyle = hexToRgba(color, isHov ? 1 : 0.7);
+      ctx.lineWidth = isHov ? 3 : 2;
+      ctx.stroke();
 
-      /* Inner bright core */
+      /* Inner bright dot */
       ctx.beginPath();
       ctx.arc(sx, sy, r * 0.3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillStyle = hexToRgba(color, 0.9);
       ctx.fill();
 
-      /* Labels — skip at low zoom for LOD */
-      if (camera.zoom >= 0.5) {
-        ctx.font = `${isHov ? 'bold ' : ''}${12 * Math.min(camera.zoom, 1.5)}px system-ui, sans-serif`;
-        ctx.fillStyle = isHov ? '#fff' : 'rgba(200,210,230,0.8)';
+      /* Labels */
+      if (camera.zoom >= 0.45) {
+        /* System name */
+        ctx.font = `${isHov ? 'bold ' : ''}${13 * Math.min(camera.zoom, 1.5)}px system-ui, sans-serif`;
+        ctx.fillStyle = isHov ? '#fff' : 'rgba(220,225,240,0.9)';
         ctx.textAlign = 'center';
-        ctx.fillText(sys.name, sx, sy + r + 16 * camera.zoom);
+        ctx.fillText(sys.name, sx, sy + r + 18 * camera.zoom);
 
-        if (camera.zoom >= 0.7) {
+        /* Category label */
+        if (camera.zoom >= 0.6) {
           ctx.font = `${9 * Math.min(camera.zoom, 1.3)}px system-ui, sans-serif`;
-          ctx.fillStyle = hexToRgba(color, 0.5);
-          ctx.fillText(sys.category.toUpperCase(), sx, sy + r + 28 * camera.zoom);
+          ctx.fillStyle = hexToRgba(color, 0.55);
+          ctx.fillText(sys.category.toUpperCase(), sx, sy + r + 30 * camera.zoom);
         }
       }
 
-      /* Base count badges — friendly (cyan) / enemy (red) */
+      /* Base count badges */
       if (camera.zoom >= 0.5 && sys.bases?.length) {
         const friendly = sys.bases.filter((b) => !b.isEnemy);
         const enemies = sys.bases.filter((b) => b.isEnemy);
 
         if (friendly.length) {
-          const bx = sx + r + 5;
-          const by = sy - r - 3;
+          const bx = sx + r + 6;
+          const by = sy - r - 4;
           ctx.beginPath();
           ctx.arc(bx, by, 8, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(34,211,238,0.15)';
@@ -432,8 +427,8 @@ export function StarMap({
         }
 
         if (enemies.length) {
-          const bx = sx - r - 5;
-          const by = sy - r - 3;
+          const bx = sx - r - 6;
+          const by = sy - r - 4;
           ctx.beginPath();
           ctx.arc(bx, by, 8, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(239,68,68,0.2)';
@@ -448,8 +443,8 @@ export function StarMap({
       /* Goal markers */
       const sg = systemGoals.get(sys.id);
       if (sg?.length && camera.zoom >= 0.5) {
-        const gx = sx - r - (hasEnemy ? 18 : 6);
-        const gy = sy - r - 3;
+        const gx = sx - r - (hasEnemy ? 20 : 6);
+        const gy = sy - r - 4;
         ctx.beginPath();
         ctx.arc(gx, gy, 8, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(99,102,241,0.2)';
@@ -460,6 +455,18 @@ export function StarMap({
         ctx.fillText(`${sg.length}`, gx, gy + 3);
       }
     });
+
+    /* "Capital" label at the very center */
+    if (camera.zoom >= 0.5) {
+      const hqSys = displaySystems.find((s) => s.isHQ);
+      if (hqSys) {
+        const hqScreen = toScreen(hqSys.coordinates.x, hqSys.coordinates.y, realW);
+        ctx.font = `bold ${10 * camera.zoom}px system-ui`;
+        ctx.fillStyle = 'rgba(251,191,36,0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText('HQ', hqScreen.sx, hqScreen.sy + 5 * camera.zoom);
+      }
+    }
   });
 
   /* ── Canvas sizing ── */
@@ -483,7 +490,7 @@ export function StarMap({
     return () => obs.disconnect();
   }, [height]);
 
-  /* ── Zoom-to-cursor via native wheel listener (non-passive) ── */
+  /* ── Zoom-to-cursor via native wheel listener ── */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -499,10 +506,8 @@ export function StarMap({
         const nz = Math.max(0.15, Math.min(5, c.zoom * factor));
         const cx = rect.width / 2;
         const cy = rect.height / 2;
-        // World position under cursor before zoom
         const wx = (mx - cx) / c.zoom - c.x;
         const wy = (my - cy) / c.zoom - c.y;
-        // Adjust camera so same world point stays under cursor
         return { x: (mx - cx) / nz - wx, y: (my - cy) / nz - wy, zoom: nz };
       });
     };
@@ -545,7 +550,6 @@ export function StarMap({
         return;
       }
 
-      /* Hit test for hover */
       let found: TribeSystem | null = null;
       for (const sys of displaySystems) {
         const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, rect.width);
@@ -581,7 +585,7 @@ export function StarMap({
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
         border: '1px solid var(--border-subtle)',
-        background: '#080a14',
+        background: '#0d1117',
       }}
     >
       <canvas
@@ -607,9 +611,9 @@ export function StarMap({
             ),
             top: Math.max(mousePos.y - 10, 4),
             pointerEvents: 'none',
-            background: 'rgba(10,12,24,0.92)',
+            background: 'rgba(13,17,23,0.95)',
             backdropFilter: 'blur(12px)',
-            border: `1px solid ${CATEGORY_COLORS[hovered.category]}40`,
+            border: `1px solid ${CATEGORY_COLORS[hovered.category]}50`,
             borderRadius: 8,
             padding: '10px 14px',
             minWidth: 180,
@@ -617,14 +621,7 @@ export function StarMap({
             zIndex: 10,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              marginBottom: 6,
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
             <div
               style={{
                 width: 8,
@@ -652,13 +649,7 @@ export function StarMap({
             </span>
           </div>
           {hovered.controlledBy && (
-            <div
-              style={{
-                fontSize: 11,
-                color: 'rgba(200,210,230,0.7)',
-                marginBottom: 2,
-              }}
-            >
+            <div style={{ fontSize: 11, color: 'rgba(200,210,230,0.7)', marginBottom: 2 }}>
               Control: {hovered.controlledBy}
             </div>
           )}
@@ -682,9 +673,7 @@ export function StarMap({
             <div style={{ fontSize: 11, marginTop: 2 }}>
               <span style={{ color: '#22d3ee' }}>
                 {hovered.bases.filter((b) => !b.isEnemy).length} base
-                {hovered.bases.filter((b) => !b.isEnemy).length !== 1
-                  ? 's'
-                  : ''}
+                {hovered.bases.filter((b) => !b.isEnemy).length !== 1 ? 's' : ''}
               </span>
               {hovered.bases.some((b) => b.isEnemy) && (
                 <span style={{ color: '#ef4444', marginLeft: 8 }}>
@@ -707,14 +696,7 @@ export function StarMap({
             </div>
           )}
           {hovered.resources && hovered.resources.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 3,
-                flexWrap: 'wrap',
-                marginTop: 4,
-              }}
-            >
+            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 4 }}>
               {hovered.resources.map((r) => (
                 <span
                   key={r}
@@ -743,6 +725,9 @@ export function StarMap({
           display: 'flex',
           gap: 8,
           flexWrap: 'wrap',
+          background: 'rgba(13,17,23,0.7)',
+          borderRadius: 6,
+          padding: '4px 8px',
         }}
       >
         {(
@@ -755,7 +740,7 @@ export function StarMap({
               alignItems: 'center',
               gap: 4,
               fontSize: 9,
-              color: 'rgba(200,210,230,0.5)',
+              color: 'rgba(200,210,230,0.6)',
             }}
           >
             <span
@@ -790,7 +775,7 @@ export function StarMap({
             height: 28,
             borderRadius: 6,
             border: '1px solid rgba(100,120,160,0.2)',
-            background: 'rgba(10,12,24,0.7)',
+            background: 'rgba(13,17,23,0.8)',
             color: '#fff',
             cursor: 'pointer',
             fontSize: 14,
@@ -810,7 +795,7 @@ export function StarMap({
             height: 28,
             borderRadius: 6,
             border: '1px solid rgba(100,120,160,0.2)',
-            background: 'rgba(10,12,24,0.7)',
+            background: 'rgba(13,17,23,0.8)',
             color: '#fff',
             cursor: 'pointer',
             fontSize: 14,
@@ -822,15 +807,13 @@ export function StarMap({
           {'\u2212'}
         </button>
         <button
-          onClick={() => {
-            setCamera({ x: 0, y: 0, zoom: 1 });
-          }}
+          onClick={() => setCamera({ x: 0, y: 0, zoom: 1 })}
           style={{
             height: 28,
             paddingInline: 8,
             borderRadius: 6,
             border: '1px solid rgba(100,120,160,0.2)',
-            background: 'rgba(10,12,24,0.7)',
+            background: 'rgba(13,17,23,0.8)',
             color: 'rgba(200,210,230,0.6)',
             cursor: 'pointer',
             fontSize: 10,

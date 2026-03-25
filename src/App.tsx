@@ -11,6 +11,7 @@ import { IntelPage } from './pages/IntelPage';
 import { AlliancePage } from './pages/AlliancePage';
 import { NewsPage } from './pages/NewsPage';
 import { FleetsPage } from './pages/FleetsPage';
+import { FeedbackPage } from './pages/FeedbackPage';
 import { LoginPage } from './pages/LoginPage';
 import { useAppStore } from './stores/appStore';
 
@@ -65,6 +66,7 @@ function App() {
         <Route path="/alliance" element={<AlliancePage />} />
         <Route path="/news" element={<NewsPage />} />
         <Route path="/fleets" element={<FleetsPage />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
       </Routes>
     </BrowserRouter>
   );

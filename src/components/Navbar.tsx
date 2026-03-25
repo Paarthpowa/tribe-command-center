@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, LayoutDashboard, Plus, Users, Trophy, Globe, LogOut, Handshake, Newspaper, Rocket } from 'lucide-react';
+import { Shield, LayoutDashboard, Plus, Users, Trophy, Globe, LogOut, Handshake, Newspaper, Rocket, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 
 export function Navbar() {
@@ -15,6 +15,7 @@ export function Navbar() {
     { path: '/create', label: 'New Goal', icon: Plus },
     { path: '/members', label: 'Members', icon: Users },
     { path: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { path: '/feedback', label: 'Feedback', icon: MessageSquare },
   ];
 
   const abbreviated = walletAddress

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus } from '../types';
+import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus, FeedbackEntry } from '../types';
 import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE } from '../data/mock';
 import systemsBundleData from '../data/systems-bundle.json';
 
@@ -47,6 +47,9 @@ interface AppState {
   /* Fleet Operations */
   fleets: FleetOperation[];
 
+  /* Feedback */
+  feedback: FeedbackEntry[];
+
   /* Computed helpers */
   currentMember: () => TribeMember | undefined;
   visibleGoals: () => Goal[];
@@ -84,6 +87,11 @@ interface AppState {
   addFleet: (fleet: FleetOperation) => void;
   rsvpFleet: (fleetId: string, memberAddress: string, memberName: string, status: FleetRSVPStatus) => void;
   deleteFleet: (fleetId: string) => void;
+
+  /* Feedback */
+  addFeedback: (entry: FeedbackEntry) => void;
+  upvoteFeedback: (feedbackId: string, memberAddress: string) => void;
+  deleteFeedback: (feedbackId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -100,6 +108,7 @@ export const useAppStore = create<AppState>()(
       activities: [],
       alliance: MOCK_ALLIANCE,
       fleets: [],
+      feedback: [],
 
       currentMember: () => {
         const { walletAddress, members } = get();
@@ -399,10 +408,25 @@ export const useAppStore = create<AppState>()(
 
       deleteFleet: (fleetId) =>
         set((s) => ({ fleets: s.fleets.filter((f) => f.id !== fleetId) })),
+
+      addFeedback: (entry) =>
+        set((s) => ({ feedback: [entry, ...s.feedback] })),
+
+      upvoteFeedback: (feedbackId, memberAddress) =>
+        set((s) => ({
+          feedback: s.feedback.map((f) =>
+            f.id === feedbackId
+              ? { ...f, upvotes: f.upvotes.includes(memberAddress) ? f.upvotes.filter((a) => a !== memberAddress) : [...f.upvotes, memberAddress] }
+              : f,
+          ),
+        })),
+
+      deleteFeedback: (feedbackId) =>
+        set((s) => ({ feedback: s.feedback.filter((f) => f.id !== feedbackId) })),
     }),
     {
       name: 'tribe-command-center',
-      version: 10,
+      version: 11,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -412,9 +436,10 @@ export const useAppStore = create<AppState>()(
         activities: state.activities,
         alliance: state.alliance,
         fleets: state.fleets,
+        feedback: state.feedback,
       }),
       migrate: (_persisted, version) => {
-        if (version < 10) return {};
+        if (version < 11) return {};
         return _persisted as Record<string, unknown>;
       },
     },
