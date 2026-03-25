@@ -240,7 +240,7 @@ export function TaskCard({ task, onPledge }: TaskCardProps) {
                         </span>
                       )}
                       <StatusBadge
-                        label={c.status === 'pending_approval' ? 'Awaiting Approval' : c.status}
+                        label={c.status === 'pending_approval' ? 'Awaiting Approval' : c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                         color={
                           c.status === 'pending_approval' ? '#f59e0b' :
                           getStatusColor(
