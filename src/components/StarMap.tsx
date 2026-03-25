@@ -367,12 +367,12 @@ export function StarMap({
         }
       }
 
-      /* Rift sighting pulse ring */
+      /* Rift sighting pulse ring (purple/gold — valuable crude fuel POI) */
       if (sys.riftSightings?.length) {
         const p = (Date.now() / 1500) % 1;
         ctx.beginPath();
         ctx.arc(sx, sy, r * (1.4 + p * 1.8), 0, Math.PI * 2);
-        ctx.strokeStyle = hexToRgba('#a855f7', 0.25 * (1 - p));
+        ctx.strokeStyle = hexToRgba('#c084fc', 0.3 * (1 - p));
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
@@ -683,9 +683,8 @@ export function StarMap({
             </div>
           )}
           {hovered.riftSightings && hovered.riftSightings.length > 0 && (
-            <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>
-              {'\uD83C\uDF00'} {hovered.riftSightings.length} rift sighting
-              {hovered.riftSightings.length > 1 ? 's' : ''}
+            <div style={{ fontSize: 11, color: '#c084fc', marginTop: 2 }}>
+              {'\uD83C\uDF00'} {hovered.riftSightings.length} crude rift{hovered.riftSightings.length > 1 ? 's' : ''} (fuel POI)
             </div>
           )}
           {hovered.dangers && hovered.dangers.length > 0 && (

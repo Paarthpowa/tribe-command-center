@@ -67,9 +67,13 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
   const [showAddBase, setShowAddBase] = useState(false);
   const [showScoutForm, setShowScoutForm] = useState(false);
   const [showEditCategory, setShowEditCategory] = useState(false);
+  const [editThreatLevel, setEditThreatLevel] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>('zones');
   const [editPlanetCount, setEditPlanetCount] = useState(false);
   const [showAddZone, setShowAddZone] = useState(false);
+
+  const member = useAppStore(s => s.currentMember());
+  const isLeaderOrOfficer = member?.role === 'leader' || member?.role === 'officer';
 
   const cat = CATEGORY_CONFIG[system.category];
   const CatIcon = cat.icon;
@@ -129,19 +133,41 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
             </span>
           )}
 
-          {system.threatLevel != null && (
-            <span style={{
+          <button
+            onClick={() => isLeaderOrOfficer && setEditThreatLevel(!editThreatLevel)}
+            style={{
               fontSize: 11, fontWeight: 600, marginLeft: 'auto',
-              color: system.threatLevel <= 3 ? '#22c55e' : system.threatLevel <= 6 ? '#eab308' : '#ef4444',
-            }}>
-              Threat: {system.threatLevel}/10
-            </span>
-          )}
+              color: (system.threatLevel ?? 0) <= 3 ? '#22c55e' : (system.threatLevel ?? 0) <= 6 ? '#eab308' : '#ef4444',
+              background: 'none', border: 'none', cursor: isLeaderOrOfficer ? 'pointer' : 'default',
+              padding: 0,
+            }}
+          >
+            Threat: {system.threatLevel ?? 0}/10{isLeaderOrOfficer ? ' ✏️' : ''}
+          </button>
 
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             ID: {system.id}
           </span>
         </div>
+
+        {/* Threat level editor */}
+        {editThreatLevel && isLeaderOrOfficer && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Threat:</span>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              value={system.threatLevel ?? 0}
+              onChange={e => updateSystem(system.id, { threatLevel: Number(e.target.value) })}
+              style={{ flex: 1, accentColor: (system.threatLevel ?? 0) <= 3 ? '#22c55e' : (system.threatLevel ?? 0) <= 6 ? '#eab308' : '#ef4444' }}
+            />
+            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 24, textAlign: 'center', color: (system.threatLevel ?? 0) <= 3 ? '#22c55e' : (system.threatLevel ?? 0) <= 6 ? '#eab308' : '#ef4444' }}>
+              {system.threatLevel ?? 0}
+            </span>
+            <button onClick={() => setEditThreatLevel(false)} style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: 11 }}>Done</button>
+          </div>
+        )}
 
         {/* Category picker */}
         {showEditCategory && (
@@ -404,6 +430,43 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
             })
           )}
         </SectionToggle>
+
+        {/* Rift Sightings (Crude Fuel POI) */}
+        {system.riftSightings && system.riftSightings.length > 0 && (
+          <SectionToggle
+            title={`Crude Rifts (${system.riftSightings.length})`}
+            icon={<Gem size={14} />}
+            isOpen={activeSection === 'rifts'}
+            onToggle={() => setActiveSection(activeSection === 'rifts' ? null : 'rifts')}
+          >
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
+              Rifts spawn crude ore for fuel production. Frigates+ require crude fuel (EU-40, EU-90, SOF-40, SOF-80).
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[...system.riftSightings].reverse().map(rift => (
+                <div key={rift.id} style={{
+                  fontSize: 12, padding: '8px 10px', borderRadius: 6,
+                  borderLeft: '3px solid #a855f7',
+                  background: 'rgba(168,85,247,0.06)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ color: '#a855f7', fontSize: 14 }}>{"\uD83C\uDF00"}</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>{rift.reportedBy}</strong>
+                    {rift.type && (
+                      <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
+                        {rift.type}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                      {new Date(rift.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {rift.notes && <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{rift.notes}</p>}
+                </div>
+              ))}
+            </div>
+          </SectionToggle>
+        )}
 
         {/* Resources & Dangers */}
         {(system.resources?.length || system.dangers?.length) && (

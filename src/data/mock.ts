@@ -107,10 +107,10 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     threatLevel: 7,
     planetCount: 3,
     notes: 'Border system. Iron Wolves have been spotted here.',
-    dangers: ['Iron Wolves raiding party', 'Unstable rift activity'],
+    dangers: ['Iron Wolves raiding party'],
     riftSightings: [
-      { id: 'rift-1', systemId: 30019809, reportedBy: 'Scout Lyra', timestamp: '2026-03-19T22:00:00Z', type: 'Type-B', notes: 'Appeared near planet 3, lasted ~2h' },
-      { id: 'rift-2', systemId: 30019809, reportedBy: 'Navigator Rex', timestamp: '2026-03-21T04:00:00Z', type: 'Type-B', notes: 'Same location as previous sighting' },
+      { id: 'rift-1', systemId: 30019809, reportedBy: 'Scout Lyra', timestamp: '2026-03-19T22:00:00Z', type: 'Old Crude (SOF)', notes: 'Rift near planet 3 — SOF-40/SOF-80 crude ore available, lasted ~2h' },
+      { id: 'rift-2', systemId: 30019809, reportedBy: 'Navigator Rex', timestamp: '2026-03-21T04:00:00Z', type: 'Old Crude (SOF)', notes: 'Same rift location, confirmed SOF crude spawn' },
     ],
     scoutingLogs: [
       { id: 'sl-2', systemId: 30019809, reportedBy: 'Scout Lyra', timestamp: '2026-03-21T04:00:00Z', lPoint: 'P1-L2', notes: 'Enemy base confirmed at P1-L2', foundEnemy: true },
@@ -156,9 +156,9 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     threatLevel: 6,
     planetCount: 2,
     riftSightings: [
-      { id: 'rift-3', systemId: 30019808, reportedBy: 'Scout Lyra', timestamp: '2026-03-22T01:00:00Z', type: 'Type-A', notes: 'Large rift, unknown contents' },
+      { id: 'rift-3', systemId: 30019808, reportedBy: 'Scout Lyra', timestamp: '2026-03-22T01:00:00Z', type: 'Young Crude (EU)', notes: 'Rift spotted — EU-40/EU-90 crude ore, needs extraction team' },
     ],
-    notes: 'Uncharted. Rift activity detected. Needs scouting.',
+    notes: 'Uncharted. Crude rift spotted — potential fuel source. Needs scouting.',
     lastScouted: '2026-03-22T01:00:00Z',
   },
 ];
