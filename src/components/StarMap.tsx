@@ -707,7 +707,7 @@ export function StarMap({
           )}
           {hovered.riftSightings && hovered.riftSightings.length > 0 && (
             <div style={{ fontSize: 11, color: '#c084fc', marginTop: 2 }}>
-              {'\uD83C\uDF00'} {hovered.riftSightings.length} crude rift{hovered.riftSightings.length > 1 ? 's' : ''} (fuel POI)
+              {'\uD83C\uDF00'} {hovered.riftSightings.length} rift sighting{hovered.riftSightings.length > 1 ? 's' : ''}
             </div>
           )}
           {hovered.dangers && hovered.dangers.length > 0 && (

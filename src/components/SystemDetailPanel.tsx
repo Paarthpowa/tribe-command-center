@@ -431,16 +431,16 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
           )}
         </SectionToggle>
 
-        {/* Rift Sightings (Crude Fuel POI) */}
+        {/* Rift Sightings — alert system for crude fuel POIs */}
         {system.riftSightings && system.riftSightings.length > 0 && (
           <SectionToggle
-            title={`Crude Rifts (${system.riftSightings.length})`}
+            title={`Rift Sightings (${system.riftSightings.length})`}
             icon={<Gem size={14} />}
             isOpen={activeSection === 'rifts'}
             onToggle={() => setActiveSection(activeSection === 'rifts' ? null : 'rifts')}
           >
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
-              Rifts spawn crude ore for fuel production. Frigates+ require crude fuel (EU-40, EU-90, SOF-40, SOF-80).
+              Rifts are temporary crude ore spawns (~3 day lifespan). Report sightings so tribe miners with lenses can extract them. Long-term data tracks spawn patterns.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[...system.riftSightings].reverse().map(rift => (
