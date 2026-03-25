@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { TribeSystem, SystemCategory, Goal } from '../types';
 
 /* ── Category visuals ── */
@@ -49,10 +49,11 @@ export function StarMap({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  /* Camera: state drives rendering, ref provides fresh values in callbacks */
-  const [camera, setCamera] = useState(() => {
-    // Auto-center and auto-zoom to fit all systems
-    if (systems.length === 0) return { x: 0, y: 0, zoom: 1 };
+  /* Normalized display coordinates — raw coords span ~14 units but node radii
+     are 13-18 → always overlap.  Normalize to ~400-unit spread so nodes are
+     well-separated at zoom 1. */
+  const displaySystems = useMemo(() => {
+    if (systems.length === 0) return systems;
     const xs = systems.map((s) => s.coordinates.x);
     const ys = systems.map((s) => s.coordinates.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
@@ -60,10 +61,18 @@ export function StarMap({
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
     const spread = Math.max(maxX - minX, maxY - minY, 1);
-    // Zoom so the spread fills ~60% of the viewport (assume ~800px)
-    const z = Math.min(5, Math.max(0.5, 400 / spread));
-    return { x: -cx, y: -cy, zoom: z };
-  });
+    const scale = 400 / spread;
+    return systems.map((s) => ({
+      ...s,
+      coordinates: {
+        x: (s.coordinates.x - cx) * scale,
+        y: (s.coordinates.y - cy) * scale,
+      },
+    }));
+  }, [systems]);
+
+  /* Camera: state drives rendering, ref provides fresh values in callbacks */
+  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
 
@@ -89,14 +98,14 @@ export function StarMap({
     [camera, height],
   );
 
-  /* Background stars (deterministic, generated once) */
+  /* Background stars (deterministic, centered on normalized space) */
   const bgStars = useRef<{ x: number; y: number; r: number; b: number }[]>([]);
   if (bgStars.current.length === 0) {
     const rng = seededRandom(42);
     for (let i = 0; i < 400; i++) {
       bgStars.current.push({
-        x: rng() * 2000 - 500,
-        y: rng() * 1500 - 300,
+        x: rng() * 800 - 400,
+        y: rng() * 800 - 400,
         r: rng() * 1.2 + 0.3,
         b: rng() * 0.5 + 0.15,
       });
@@ -113,10 +122,10 @@ export function StarMap({
     });
   });
 
-  const systemMap = new Map(systems.map((s) => [s.id, s]));
+  const systemMap = new Map(displaySystems.map((s) => [s.id, s]));
 
   /* ── Animation tick (~15 fps, only when needed) ── */
-  const hasAnimations = systems.some(
+  const hasAnimations = displaySystems.some(
     (s) => (s.riftSightings?.length ?? 0) > 0 || s.isHQ || (s.threatLevel ?? 0) >= 7,
   );
   useEffect(() => {
@@ -189,7 +198,7 @@ export function StarMap({
 
     /* Connection lines */
     const drawn = new Set<string>();
-    systems.forEach((sys) => {
+    displaySystems.forEach((sys) => {
       sys.connections?.forEach((tid) => {
         const key = sys.id < tid ? `${sys.id}-${tid}` : `${tid}-${sys.id}`;
         if (drawn.has(key)) return;
@@ -225,7 +234,7 @@ export function StarMap({
     });
 
     /* Territory fill — core systems */
-    const cores = systems.filter((s) => s.category === 'core');
+    const cores = displaySystems.filter((s) => s.category === 'core');
     if (cores.length >= 2) {
       const pad = 50 * camera.zoom;
       ctx.beginPath();
@@ -250,7 +259,7 @@ export function StarMap({
     }
 
     /* ── System nodes ── */
-    systems.forEach((sys) => {
+    displaySystems.forEach((sys) => {
       if (!vis(sys.coordinates.x, sys.coordinates.y)) return;
 
       const color = CATEGORY_COLORS[sys.category];
@@ -506,7 +515,7 @@ export function StarMap({
 
       /* Hit test for hover */
       let found: TribeSystem | null = null;
-      for (const sys of systems) {
+      for (const sys of displaySystems) {
         const { sx, sy } = toScreen(sys.coordinates.x, sys.coordinates.y, rect.width);
         const hitR = Math.max(20, 15 * cameraRef.current.zoom);
         if (Math.hypot(mx - sx, my - sy) < hitR) {
@@ -517,7 +526,7 @@ export function StarMap({
       setHovered(found);
       canvas.style.cursor = found ? 'pointer' : 'grab';
     },
-    [systems, toScreen],
+    [displaySystems, toScreen],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -782,16 +791,7 @@ export function StarMap({
         </button>
         <button
           onClick={() => {
-            if (systems.length === 0) { setCamera({ x: 0, y: 0, zoom: 1 }); return; }
-            const xs = systems.map((s) => s.coordinates.x);
-            const ys = systems.map((s) => s.coordinates.y);
-            const minX = Math.min(...xs), maxX = Math.max(...xs);
-            const minY = Math.min(...ys), maxY = Math.max(...ys);
-            const cx = (minX + maxX) / 2;
-            const cy = (minY + maxY) / 2;
-            const spread = Math.max(maxX - minX, maxY - minY, 1);
-            const z = Math.min(5, Math.max(0.5, 400 / spread));
-            setCamera({ x: -cx, y: -cy, zoom: z });
+            setCamera({ x: 0, y: 0, zoom: 1 });
           }}
           style={{
             height: 28,
