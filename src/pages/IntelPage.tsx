@@ -236,13 +236,16 @@ function SystemCard({
 }
 
 export function IntelPage() {
-  const { systems, goals, worldSystems, claimSystem, unclaimSystem, setHQ } = useAppStore();
+  const { systems, goals, worldSystems, claimSystem, claimGatedNetwork, unclaimSystem, setHQ } = useAppStore();
   const [filter, setFilter] = useState<SystemCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [threatFilter, setThreatFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
   const [showOnlyWithBases, setShowOnlyWithBases] = useState(false);
   const [selectedSystem, setSelectedSystem] = useState<number | null>(null);
   const [showClaim, setShowClaim] = useState(false);
+  const [claimMode, setClaimMode] = useState<'single' | 'network'>('single');
+  const [networkLoading, setNetworkLoading] = useState(false);
+  const [networkResult, setNetworkResult] = useState<{ added: number; total: number } | null>(null);
   const [detailSystemId, setDetailSystemId] = useState<number | null>(null);
 
   const claimedIds = useMemo(() => new Set(systems.map((s) => s.id)), [systems]);
@@ -324,22 +327,90 @@ export function IntelPage() {
       {/* Claim System Panel */}
       {showClaim && (
         <GlassCard style={{ padding: '16px 20px', marginBottom: 16, background: 'var(--bg-card)', border: '1px solid rgba(99,102,241,0.2)' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
-            Claim a System
+          {/* Mode toggle */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: 'var(--bg-surface)', borderRadius: 6, padding: 3 }}>
+            {([['single', 'Single System'], ['network', 'Gated Network']] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                onClick={() => { setClaimMode(mode); setNetworkResult(null); }}
+                style={{
+                  flex: 1,
+                  padding: '6px 12px',
+                  borderRadius: 4,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: claimMode === mode ? 'rgba(99,102,241,0.15)' : 'transparent',
+                  color: claimMode === mode ? '#818cf8' : 'var(--text-muted)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
-            Search for a system from the world atlas to add to your territory.
-          </p>
-          <SystemPicker
-            systems={worldSystems}
-            claimedIds={claimedIds}
-            onSelect={(ws) => {
-              claimSystem(ws);
-              setShowClaim(false);
-              setSelectedSystem(ws.id);
-            }}
-            placeholder="Search world systems by name..."
-          />
+
+          {claimMode === 'single' ? (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+                Claim a System
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+                Search for a system from the world atlas to add to your territory.
+              </p>
+              <SystemPicker
+                systems={worldSystems}
+                claimedIds={claimedIds}
+                onSelect={(ws) => {
+                  claimSystem(ws);
+                  setShowClaim(false);
+                  setSelectedSystem(ws.id);
+                }}
+                placeholder="Search world systems by name..."
+              />
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+                Claim Entire Gated Network
+              </div>
+              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+                Pick any system inside the network. All systems connected via NPC gates will be discovered and claimed automatically.
+              </p>
+              <SystemPicker
+                systems={worldSystems}
+                claimedIds={claimedIds}
+                onSelect={async (ws) => {
+                  setNetworkLoading(true);
+                  setNetworkResult(null);
+                  try {
+                    const result = await claimGatedNetwork(ws.id);
+                    setNetworkResult(result);
+                    if (result.added > 0) setSelectedSystem(ws.id);
+                  } finally {
+                    setNetworkLoading(false);
+                  }
+                }}
+                placeholder="Search for a system in the gated network..."
+              />
+              {networkLoading && (
+                <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 6, background: 'rgba(99,102,241,0.08)', fontSize: 12, color: '#818cf8' }}>
+                  Traversing gate connections… fetching connected systems from world API…
+                </div>
+              )}
+              {networkResult && !networkLoading && (
+                <div style={{
+                  marginTop: 12, padding: '10px 14px', borderRadius: 6, fontSize: 12,
+                  background: networkResult.added > 0 ? 'rgba(34,197,94,0.08)' : 'rgba(250,204,21,0.08)',
+                  color: networkResult.added > 0 ? '#22c55e' : '#fbbf24',
+                }}>
+                  {networkResult.added > 0
+                    ? `Added ${networkResult.added} new system${networkResult.added > 1 ? 's' : ''} (${networkResult.total} total in gated network)`
+                    : `All ${networkResult.total} systems in this network are already claimed`}
+                </div>
+              )}
+            </>
+          )}
         </GlassCard>
       )}
 

@@ -81,6 +81,7 @@ interface AppState {
   addOrbitalZone: (systemId: number, zone: OrbitalZone) => void;
   updateOrbitalZone: (systemId: number, zoneName: string, updates: Partial<OrbitalZone>) => void;
   removeOrbitalZone: (systemId: number, zoneName: string) => void;
+  claimGatedNetwork: (startSystemId: number) => Promise<{ added: number; total: number }>;
   addActivity: (event: Omit<ActivityEvent, 'id' | 'timestamp'>) => void;
 
   /* Fleet Operations */
@@ -278,6 +279,76 @@ export const useAppStore = create<AppState>()(
         if (sys) get().addActivity({ type: 'system_unclaimed', description: `Unclaimed system ${sys.name}`, systemName: sys.name });
       },
 
+      claimGatedNetwork: async (startSystemId) => {
+        const API = 'https://world-api-stillness.live.tech.evefrontier.com/v2/solarsystems';
+        const visited = new Set<number>();
+        const queue: number[] = [startSystemId];
+        const networkSystems: { id: number; name: string; x: number; y: number; connections: number[] }[] = [];
+
+        // BFS traverse gate connections
+        while (queue.length > 0) {
+          const batch = queue.splice(0, 3); // fetch up to 3 at a time to avoid flooding
+          const results = await Promise.all(
+            batch.filter((id) => !visited.has(id)).map(async (id) => {
+              visited.add(id);
+              try {
+                const res = await fetch(`${API}/${id}`);
+                if (!res.ok) return null;
+                return await res.json();
+              } catch { return null; }
+            }),
+          );
+          for (const data of results) {
+            if (!data?.solarSystem) continue;
+            const sys = data.solarSystem;
+            const gateIds: number[] = (sys.gateLinks ?? []).map((g: { destinationSolarSystemId: number }) => g.destinationSolarSystemId);
+            // Look up coordinates from world systems bundle
+            const worldSys = get().worldSystems.find((w) => w.id === sys.solarSystemId);
+            networkSystems.push({
+              id: sys.solarSystemId,
+              name: sys.solarSystemName,
+              x: worldSys?.x ?? 0,
+              y: worldSys?.y ?? 0,
+              connections: gateIds,
+            });
+            for (const gateId of gateIds) {
+              if (!visited.has(gateId)) queue.push(gateId);
+            }
+          }
+        }
+
+        // Add all discovered systems that aren't already claimed
+        const existing = new Set(get().systems.map((s) => s.id));
+        const newSystems: TribeSystem[] = networkSystems
+          .filter((ns) => !existing.has(ns.id))
+          .map((ns) => ({
+            id: ns.id,
+            name: ns.name,
+            category: (ns.id === startSystemId ? 'core' : 'expansion') as SystemCategory,
+            coordinates: { x: ns.x, y: ns.y },
+            connections: ns.connections,
+          }));
+
+        if (newSystems.length > 0) {
+          set((s) => ({ systems: [...s.systems, ...newSystems] }));
+          // Update connections on already-existing systems too
+          set((s) => ({
+            systems: s.systems.map((sys) => {
+              const netData = networkSystems.find((ns) => ns.id === sys.id);
+              if (netData && (!sys.connections || sys.connections.length === 0)) {
+                return { ...sys, connections: netData.connections };
+              }
+              return sys;
+            }),
+          }));
+          get().addActivity({
+            type: 'system_claimed',
+            description: `Claimed gated network from ${networkSystems.find((ns) => ns.id === startSystemId)?.name ?? 'unknown'} (${newSystems.length} new systems, ${networkSystems.length} total in network)`,
+          });
+        }
+        return { added: newSystems.length, total: networkSystems.length };
+      },
+
       updateSystem: (systemId, updates) =>
         set((s) => ({
           systems: s.systems.map((sys) =>
@@ -426,7 +497,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 12,
+      version: 13,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -439,7 +510,7 @@ export const useAppStore = create<AppState>()(
         feedback: state.feedback,
       }),
       migrate: (_persisted, version) => {
-        if (version < 11) return {};
+        if (version < 13) return {};
         return _persisted as Record<string, unknown>;
       },
     },
