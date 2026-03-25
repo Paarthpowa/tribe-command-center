@@ -93,6 +93,8 @@ export interface TribeSystem {
   lastScouted?: string;
   /** Is this the tribe's HQ system? */
   isHQ?: boolean;
+  /** Has an NPC station (rare, important landmark) */
+  hasNPCStation?: boolean;
   /** Number of planets in this system (determines L-point count) */
   planetCount?: number;
   /** Known Lagrange points with scouting status */

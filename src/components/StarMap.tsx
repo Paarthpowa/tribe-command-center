@@ -392,6 +392,23 @@ export function StarMap({
       ctx.fillStyle = hexToRgba(color, 0.9);
       ctx.fill();
 
+      /* NPC Station marker — diamond shape below the node */
+      if (sys.hasNPCStation && camera.zoom >= 0.45) {
+        const ds = 6 * camera.zoom;
+        const sy2 = sy - r - 10 * camera.zoom;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy2 - ds);
+        ctx.lineTo(sx + ds, sy2);
+        ctx.lineTo(sx, sy2 + ds);
+        ctx.lineTo(sx - ds, sy2);
+        ctx.closePath();
+        ctx.fillStyle = '#22d3ee';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(34,211,238,0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
       /* Labels */
       if (camera.zoom >= 0.45) {
         /* System name */
@@ -653,6 +670,12 @@ export function StarMap({
               Control: {hovered.controlledBy}
             </div>
           )}
+          {hovered.hasNPCStation && (
+            <div style={{ fontSize: 11, color: '#22d3ee', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 8, display: 'inline-block', width: 8, height: 8, background: '#22d3ee', transform: 'rotate(45deg)' }} />
+              NPC Station
+            </div>
+          )}
           {hovered.threatLevel != null && (
             <div
               style={{
@@ -753,6 +776,10 @@ export function StarMap({
             {cat}
           </span>
         ))}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'rgba(200,210,230,0.6)' }}>
+          <span style={{ width: 6, height: 6, background: '#22d3ee', transform: 'rotate(45deg)', display: 'inline-block' }} />
+          station
+        </span>
       </div>
 
       {/* Zoom controls */}

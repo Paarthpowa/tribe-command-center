@@ -426,7 +426,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 11,
+      version: 12,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
