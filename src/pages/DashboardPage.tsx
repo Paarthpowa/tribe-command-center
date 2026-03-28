@@ -4,7 +4,7 @@ import { GoalTile } from '../components/GoalTile';
 import { GlassCard } from '../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import { Target, CheckCircle, Clock, Users, Globe, Gem, Activity, AlertTriangle, BarChart3 } from 'lucide-react';
-import { getPriorityColor, getStatusColor } from '../lib/helpers';
+import { getPriorityColor } from '../lib/helpers';
 
 export function DashboardPage() {
   const { tribe, members, visibleGoals, systems, activities } = useAppStore();
