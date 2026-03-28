@@ -1,6 +1,6 @@
 import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
-import { Shield, Star, User, Zap, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Shield, Star, User, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react';
 import type { MemberClearance } from '../types';
 
 const roleConfig = {
@@ -156,11 +156,6 @@ export function MembersPage() {
                   {sys && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <MapPin size={12} color="var(--text-muted)" /> {sys}
-                    </span>
-                  )}
-                  {m.profile.baseEnergy != null && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#22d3ee' }}>
-                      <Zap size={12} /> {m.profile.baseEnergy.toLocaleString()}
                     </span>
                   )}
                   {m.profile.lastActive && (

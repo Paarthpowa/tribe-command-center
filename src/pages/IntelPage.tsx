@@ -15,7 +15,6 @@ import {
   Skull,
   HelpCircle,
   AlertTriangle,
-  Zap,
   ChevronDown,
   ChevronRight,
   Plus,
@@ -137,11 +136,6 @@ function SystemCard({
               {system.bases.map((b) => (
                 <div key={b.memberName} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)', padding: '2px 0' }}>
                   <span style={{ flex: 1 }}>{b.memberName}</span>
-                  {b.energy != null && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: '#22d3ee' }}>
-                      <Zap size={11} /> {b.energy.toLocaleString()}
-                    </span>
-                  )}
                 </div>
               ))}
             </div>

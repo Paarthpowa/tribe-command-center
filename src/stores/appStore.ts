@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus, FeedbackEntry } from '../types';
-import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE } from '../data/mock';
+import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE, MOCK_FLEETS } from '../data/mock';
 import systemsBundleData from '../data/systems-bundle.json';
 
 /** Clearance hierarchy — higher index = more access */
@@ -108,7 +108,7 @@ export const useAppStore = create<AppState>()(
       goals: MOCK_GOALS,
       activities: [],
       alliance: MOCK_ALLIANCE,
-      fleets: [],
+      fleets: MOCK_FLEETS,
       feedback: [],
 
       currentMember: () => {
@@ -497,7 +497,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 13,
+      version: 14,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -510,7 +510,7 @@ export const useAppStore = create<AppState>()(
         feedback: state.feedback,
       }),
       migrate: (_persisted, version) => {
-        if (version < 13) return {};
+        if (version < 14) return {};
         return _persisted as Record<string, unknown>;
       },
     },

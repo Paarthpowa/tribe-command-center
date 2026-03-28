@@ -1,4 +1,4 @@
-import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem, WorldSystem, Alliance } from '../types';
+import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem, WorldSystem, Alliance, FleetOperation } from '../types';
 
 export const MOCK_TRIBE: Tribe = {
   id: 'tribe-alpha',
@@ -229,22 +229,22 @@ export const MOCK_MEMBERS: TribeMember[] = [
   {
     id: 'm1', address: '0xalpha_leader_address', name: 'Commander Zara', role: 'leader', status: 'approved', clearance: 'leader', joinedAt: '2026-03-15T00:00:00Z',
     reputation: { totalPledges: 8, deliveredOnTime: 7, deliveredLate: 1, failedPledges: 0, score: 94 },
-    profile: { baseSystem: 30019616, baseEnergy: 4200, baseLPoint: 'P1-L4', lastActive: '2026-03-22T07:30:00Z' },
+    profile: { baseSystem: 30019616, baseLPoint: 'P1-L4', lastActive: '2026-03-22T07:30:00Z' },
   },
   {
     id: 'm2', address: '0xplayer_a', name: 'Navigator Rex', role: 'officer', status: 'approved', clearance: 'officer', joinedAt: '2026-03-16T00:00:00Z',
     reputation: { totalPledges: 12, deliveredOnTime: 11, deliveredLate: 1, failedPledges: 0, score: 96 },
-    profile: { baseSystem: 30019616, baseEnergy: 3100, baseLPoint: 'P2-L3', lastActive: '2026-03-22T06:15:00Z' },
+    profile: { baseSystem: 30019616, baseLPoint: 'P2-L3', lastActive: '2026-03-22T06:15:00Z' },
   },
   {
     id: 'm3', address: '0xplayer_b', name: 'Engineer Kael', role: 'member', status: 'approved', clearance: 'member', joinedAt: '2026-03-17T00:00:00Z',
     reputation: { totalPledges: 6, deliveredOnTime: 3, deliveredLate: 2, failedPledges: 1, score: 58 },
-    profile: { baseSystem: 30019619, baseEnergy: 1800, baseLPoint: 'P1-L1', lastActive: '2026-03-21T22:00:00Z' },
+    profile: { baseSystem: 30019619, baseLPoint: 'P1-L1', lastActive: '2026-03-21T22:00:00Z' },
   },
   {
     id: 'm4', address: '0xplayer_c', name: 'Scout Lyra', role: 'member', status: 'approved', clearance: 'member', joinedAt: '2026-03-18T00:00:00Z',
     reputation: { totalPledges: 4, deliveredOnTime: 4, deliveredLate: 0, failedPledges: 0, score: 100 },
-    profile: { baseSystem: 30019625, baseEnergy: 950, baseLPoint: 'P1-L5', lastActive: '2026-03-22T01:00:00Z', notes: 'Frontline scout. Tracks rift activity.' },
+    profile: { baseSystem: 30019625, baseLPoint: 'P1-L5', lastActive: '2026-03-22T01:00:00Z', notes: 'Frontline scout. Tracks rift activity.' },
   },
   {
     id: 'm5', address: '0xpending_user', name: 'Recruit Nova', role: 'member', status: 'pending', clearance: 'pending', joinedAt: '2026-03-22T00:00:00Z',
@@ -495,4 +495,92 @@ export const MOCK_ALLIANCE: Alliance = {
   sharedGoalIds: ['goal-5'],
   createdAt: '2026-03-20T00:00:00Z',
 };
+
+/* ── Fleet Operations ── */
+
+export const MOCK_FLEETS: FleetOperation[] = [
+  // Past — completed ops
+  {
+    id: 'fleet-1',
+    tribeId: 'tribe-alpha',
+    title: 'EG1-FRK Perimeter Sweep',
+    description: 'Clear Iron Wolves scouts from EG1-FRK. Secure the border for gate deployment.',
+    date: '2026-03-20',
+    startTime: '19:00',
+    durationMinutes: 90,
+    goal: 'Eliminate hostile scouts and secure EG1-FRK for tribe operations',
+    systemId: 30019625,
+    systemName: 'EG1-FRK',
+    createdBy: '0xalpha_leader_address',
+    createdByName: 'Commander Zara',
+    createdAt: '2026-03-19T14:00:00Z',
+    rsvps: [
+      { memberAddress: '0xalpha_leader_address', memberName: 'Commander Zara', status: 'coming', timestamp: '2026-03-19T14:00:00Z' },
+      { memberAddress: '0xplayer_a', memberName: 'Navigator Rex', status: 'coming', timestamp: '2026-03-19T15:30:00Z' },
+      { memberAddress: '0xplayer_c', memberName: 'Scout Lyra', status: 'coming', timestamp: '2026-03-19T16:00:00Z' },
+      { memberAddress: '0xplayer_b', memberName: 'Engineer Kael', status: 'not_coming', timestamp: '2026-03-19T18:00:00Z' },
+    ],
+  },
+  {
+    id: 'fleet-2',
+    tribeId: 'tribe-alpha',
+    title: 'U85-3TK Recon Run',
+    description: 'Scout contested system U85-3TK. Map enemy positions and check deep-core metallic deposits.',
+    date: '2026-03-23',
+    startTime: '15:00',
+    durationMinutes: 60,
+    goal: 'Scout all L-points in U85-3TK, identify enemy bases and resource nodes',
+    systemId: 30019623,
+    systemName: 'U85-3TK',
+    createdBy: '0xplayer_c',
+    createdByName: 'Scout Lyra',
+    createdAt: '2026-03-22T09:00:00Z',
+    rsvps: [
+      { memberAddress: '0xplayer_c', memberName: 'Scout Lyra', status: 'coming', timestamp: '2026-03-22T09:00:00Z' },
+      { memberAddress: '0xplayer_a', memberName: 'Navigator Rex', status: 'coming', timestamp: '2026-03-22T10:00:00Z' },
+    ],
+  },
+  {
+    id: 'fleet-3',
+    tribeId: 'tribe-alpha',
+    title: 'AFN-K4L Crude Rift Extraction',
+    description: 'Reported rift with Young Crude (EU) in AFN-K4L. Bring mining lenses — extract before hostile tribes arrive.',
+    date: '2026-03-25',
+    startTime: '20:00',
+    durationMinutes: 45,
+    goal: 'Extract EU-40/EU-90 crude ore from active rift in AFN-K4L',
+    systemId: 30019640,
+    systemName: 'AFN-K4L',
+    createdBy: '0xplayer_a',
+    createdByName: 'Navigator Rex',
+    createdAt: '2026-03-24T18:00:00Z',
+    rsvps: [
+      { memberAddress: '0xplayer_a', memberName: 'Navigator Rex', status: 'coming', timestamp: '2026-03-24T18:00:00Z' },
+      { memberAddress: '0xalpha_leader_address', memberName: 'Commander Zara', status: 'coming', timestamp: '2026-03-24T19:00:00Z' },
+      { memberAddress: '0xplayer_b', memberName: 'Engineer Kael', status: 'maybe', timestamp: '2026-03-24T20:00:00Z' },
+      { memberAddress: '0xplayer_c', memberName: 'Scout Lyra', status: 'coming', timestamp: '2026-03-25T08:00:00Z' },
+    ],
+  },
+  // Upcoming
+  {
+    id: 'fleet-4',
+    tribeId: 'tribe-alpha',
+    title: 'ONG-CSK Deep Strike',
+    description: 'Alliance-coordinated assault on Iron Wolves staging area in ONG-CSK. Frontier Coalition joint op with Void Runners.',
+    date: '2026-03-30',
+    startTime: '18:00',
+    durationMinutes: 120,
+    goal: 'Destroy Iron Wolves forward base in ONG-CSK and establish perimeter control',
+    systemId: 30019635,
+    systemName: 'ONG-CSK',
+    createdBy: '0xalpha_leader_address',
+    createdByName: 'Commander Zara',
+    createdAt: '2026-03-27T10:00:00Z',
+    rsvps: [
+      { memberAddress: '0xalpha_leader_address', memberName: 'Commander Zara', status: 'coming', timestamp: '2026-03-27T10:00:00Z' },
+      { memberAddress: '0xplayer_a', memberName: 'Navigator Rex', status: 'coming', timestamp: '2026-03-27T12:00:00Z' },
+      { memberAddress: '0xplayer_c', memberName: 'Scout Lyra', status: 'maybe', timestamp: '2026-03-27T14:00:00Z' },
+    ],
+  },
+];
 
