@@ -1,22 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus, FeedbackEntry } from '../types';
-import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE, MOCK_FLEETS } from '../data/mock';
+import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE, MOCK_FLEETS, MOCK_ACTIVITIES, MOCK_FEEDBACK } from '../data/mock';
 import systemsBundleData from '../data/systems-bundle.json';
 
 /** Clearance hierarchy — higher index = more access */
 const CLEARANCE_RANK: Record<MemberClearance, number> = {
   pending: 0,
   member: 1,
-  officer: 2,
-  leader: 3,
+  veteran: 2,
+  officer: 3,
+  leader: 4,
 };
 
 /** Minimum clearance required per classification */
 const CLASSIFICATION_CLEARANCE = {
   'normal': 1,     // member+
-  'classified': 2, // officer+
-  'top-secret': 3, // leader only
+  'classified': 2, // veteran+
+  'top-secret': 3, // officer+leader
 } as const;
 
 interface AppState {
@@ -92,6 +93,7 @@ interface AppState {
   /* Feedback */
   addFeedback: (entry: FeedbackEntry) => void;
   upvoteFeedback: (feedbackId: string, memberAddress: string) => void;
+  downvoteFeedback: (feedbackId: string, memberAddress: string) => void;
   deleteFeedback: (feedbackId: string) => void;
 }
 
@@ -106,10 +108,10 @@ export const useAppStore = create<AppState>()(
       worldSystemsLoaded: true,
       systems: MOCK_SYSTEMS,
       goals: MOCK_GOALS,
-      activities: [],
+      activities: MOCK_ACTIVITIES,
       alliance: MOCK_ALLIANCE,
       fleets: MOCK_FLEETS,
-      feedback: [],
+      feedback: MOCK_FEEDBACK,
 
       currentMember: () => {
         const { walletAddress, members } = get();
@@ -487,7 +489,16 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           feedback: s.feedback.map((f) =>
             f.id === feedbackId
-              ? { ...f, upvotes: f.upvotes.includes(memberAddress) ? f.upvotes.filter((a) => a !== memberAddress) : [...f.upvotes, memberAddress] }
+              ? { ...f, upvotes: f.upvotes.includes(memberAddress) ? f.upvotes.filter((a) => a !== memberAddress) : [...f.upvotes, memberAddress], downvotes: (f.downvotes ?? []).filter((a) => a !== memberAddress) }
+              : f,
+          ),
+        })),
+
+      downvoteFeedback: (feedbackId, memberAddress) =>
+        set((s) => ({
+          feedback: s.feedback.map((f) =>
+            f.id === feedbackId
+              ? { ...f, downvotes: (f.downvotes ?? []).includes(memberAddress) ? (f.downvotes ?? []).filter((a) => a !== memberAddress) : [...(f.downvotes ?? []), memberAddress], upvotes: f.upvotes.filter((a) => a !== memberAddress) }
               : f,
           ),
         })),
@@ -497,7 +508,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 14,
+      version: 15,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -510,7 +521,7 @@ export const useAppStore = create<AppState>()(
         feedback: state.feedback,
       }),
       migrate: (_persisted, version) => {
-        if (version < 14) return {};
+        if (version < 15) return {};
         return _persisted as Record<string, unknown>;
       },
     },

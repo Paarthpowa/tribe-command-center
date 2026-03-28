@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
 import {
-  MessageSquare, Plus, ThumbsUp, User, Target, Lightbulb,
+  MessageSquare, Plus, ThumbsUp, ThumbsDown, User, Target, Lightbulb,
   AlertCircle, X, Eye, EyeOff, Send,
 } from 'lucide-react';
 import type { FeedbackCategory, FeedbackEntry } from '../types';
@@ -27,11 +27,12 @@ function relativeTime(ts: string): string {
 }
 
 function FeedbackCard({ entry }: { entry: FeedbackEntry }) {
-  const { walletAddress, upvoteFeedback, deleteFeedback, currentMember } = useAppStore();
+  const { walletAddress, upvoteFeedback, downvoteFeedback, deleteFeedback, currentMember } = useAppStore();
   const member = currentMember();
   const cat = CATEGORY_CONFIG[entry.category];
   const Icon = cat.icon;
   const hasUpvoted = walletAddress ? entry.upvotes.includes(walletAddress) : false;
+  const hasDownvoted = walletAddress ? (entry.downvotes ?? []).includes(walletAddress) : false;
   const canDelete = walletAddress === entry.authorAddress || member?.role === 'leader';
 
   return (
@@ -90,20 +91,34 @@ function FeedbackCard({ entry }: { entry: FeedbackEntry }) {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
             <button
               onClick={() => walletAddress && upvoteFeedback(entry.id, walletAddress)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '4px 10px', borderRadius: 'var(--radius-md)',
-                border: hasUpvoted ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border-subtle)',
-                background: hasUpvoted ? 'rgba(99,102,241,0.12)' : 'transparent',
-                color: hasUpvoted ? 'var(--accent-indigo)' : 'var(--text-muted)',
+                border: hasUpvoted ? '1px solid rgba(34,197,94,0.4)' : '1px solid var(--border-subtle)',
+                background: hasUpvoted ? 'rgba(34,197,94,0.12)' : 'transparent',
+                color: hasUpvoted ? '#22c55e' : 'var(--text-muted)',
                 fontSize: 12, fontWeight: 600, cursor: 'pointer',
               }}
             >
               <ThumbsUp size={12} />
               {entry.upvotes.length > 0 && entry.upvotes.length}
+            </button>
+            <button
+              onClick={() => walletAddress && downvoteFeedback(entry.id, walletAddress)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 'var(--radius-md)',
+                border: hasDownvoted ? '1px solid rgba(239,68,68,0.4)' : '1px solid var(--border-subtle)',
+                background: hasDownvoted ? 'rgba(239,68,68,0.12)' : 'transparent',
+                color: hasDownvoted ? '#ef4444' : 'var(--text-muted)',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              <ThumbsDown size={12} />
+              {(entry.downvotes ?? []).length > 0 && (entry.downvotes ?? []).length}
             </button>
             {canDelete && (
               <button
@@ -156,6 +171,7 @@ function CreateFeedbackModal({ onClose }: { onClose: () => void }) {
       authorName: anonymous ? undefined : member.name,
       createdAt: new Date().toISOString(),
       upvotes: [],
+      downvotes: [],
     };
     addFeedback(entry);
     onClose();

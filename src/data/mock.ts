@@ -1,4 +1,4 @@
-import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem, WorldSystem, Alliance, FleetOperation } from '../types';
+import type { Goal, Tribe, TribeMember, TimelineEvent, TribeSystem, WorldSystem, Alliance, FleetOperation, ActivityEvent, FeedbackEntry } from '../types';
 
 export const MOCK_TRIBE: Tribe = {
   id: 'tribe-alpha',
@@ -24,7 +24,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     coordinates: { x: 431.12, y: 200.84 },
     controlledBy: 'Tribe Alpha',
     connections: [30019619, 30019621, 30019625],
-    resources: ['Common Ore', 'Metal-rich Ore'],
+    resources: ['Char', 'Slag'],
     threatLevel: 2,
     notes: 'NPC Station system — our HQ. Rare station provides services and safety.',
     isHQ: true,
@@ -68,7 +68,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     coordinates: { x: 426.06, y: 188.09 },
     controlledBy: 'Tribe Alpha',
     connections: [30019616, 30019618, 30019645],
-    resources: ['Common Ore'],
+    resources: ['Char'],
     threatLevel: 3,
     planetCount: 2,
     bases: [
@@ -83,7 +83,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     coordinates: { x: 424.57, y: 186.82 },
     controlledBy: 'Tribe Alpha',
     connections: [30019619, 30019621],
-    resources: ['Common Ore', 'Metal-rich Ore'],
+    resources: ['Char', 'Slag'],
     threatLevel: 2,
     planetCount: 3,
     notes: 'Quiet core system. Good for secondary operations.',
@@ -95,7 +95,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     category: 'expansion',
     coordinates: { x: 419.32, y: 191.36 },
     connections: [30019616, 30019613, 30019618],
-    resources: ['Common Ore', 'Metal-rich Ore', 'Carbonaceous Ore'],
+    resources: ['Char', 'Slag', 'Ingot'],
     threatLevel: 5,
     planetCount: 6,
     notes: 'Resource-rich junction system — all three standard ores. Planning depot here.',
@@ -131,7 +131,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     category: 'expansion',
     coordinates: { x: 409.58, y: 198.98 },
     connections: [30019625, 30019636, 30019621],
-    resources: ['Metal-rich Ore', 'Carbonaceous Ore'],
+    resources: ['Slag', 'Ingot'],
     threatLevel: 4,
     planetCount: 4,
     notes: 'Western gateway to outer constellations. Key strategic junction.',
@@ -145,7 +145,7 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     controlledBy: 'Disputed',
     connections: [30019635, 30019625, 30019641, 30019622],
     threatLevel: 8,
-    resources: ['Deep-Core Metallic Ore'],
+    resources: ['Comet'],
     planetCount: 2,
     notes: 'Valuable deep-core metallic deposits. Multiple tribes fighting for control.',
     dangers: ['Iron Wolves main fleet', 'Void Syndicate scouts'],
@@ -157,10 +157,10 @@ export const MOCK_SYSTEMS: TribeSystem[] = [
     category: 'resource',
     coordinates: { x: 410.41, y: 200.03 },
     connections: [30019636, 30019640, 30019623],
-    resources: ['Metal-rich Ore', 'Carbonaceous Ore', 'Old Crude Matter'],
+    resources: ['Slag', 'Ingot', 'Old Crude Matter'],
     threatLevel: 4,
     planetCount: 5,
-    notes: 'Major resource node — metal-rich and carbonaceous ores plus crude matter. Worth securing.',
+    notes: 'Major resource node — slag and ingot ores plus crude matter. Worth securing.',
     lastScouted: '2026-03-19T16:00:00Z',
   },
   {
@@ -242,7 +242,7 @@ export const MOCK_MEMBERS: TribeMember[] = [
     profile: { baseSystem: 30019619, baseLPoint: 'P1-L1', lastActive: '2026-03-21T22:00:00Z' },
   },
   {
-    id: 'm4', address: '0xplayer_c', name: 'Scout Lyra', role: 'member', status: 'approved', clearance: 'member', joinedAt: '2026-03-18T00:00:00Z',
+    id: 'm4', address: '0xplayer_c', name: 'Scout Lyra', role: 'member', status: 'approved', clearance: 'veteran', joinedAt: '2026-03-18T00:00:00Z',
     reputation: { totalPledges: 4, deliveredOnTime: 4, deliveredLate: 0, failedPledges: 0, score: 100 },
     profile: { baseSystem: 30019625, baseLPoint: 'P1-L5', lastActive: '2026-03-22T01:00:00Z', notes: 'Frontline scout. Tracks rift activity.' },
   },
@@ -584,3 +584,67 @@ export const MOCK_FLEETS: FleetOperation[] = [
   },
 ];
 
+/* ── Mock Activities ── */
+
+export const MOCK_ACTIVITIES: ActivityEvent[] = [
+  { id: 'act-1', type: 'system_claimed', description: 'Claimed gated network from AM1-9KK (13 systems total)', timestamp: '2026-03-22T08:30:00Z' },
+  { id: 'act-2', type: 'scout_report', description: 'Scout Lyra scouted AFN-K4L — rift with Young Crude detected', memberName: 'Scout Lyra', systemName: 'AFN-K4L', timestamp: '2026-03-22T01:00:00Z' },
+  { id: 'act-3', type: 'hq_set', description: 'Set HQ to AM1-9KK', systemName: 'AM1-9KK', timestamp: '2026-03-21T20:00:00Z' },
+  { id: 'act-4', type: 'fleet_created', description: 'Fleet op "ONG-CSK Deep Strike" created for 2026-03-30', memberName: 'Commander Zara', timestamp: '2026-03-21T18:00:00Z' },
+  { id: 'act-5', type: 'pledge_made', description: 'Navigator Rex delivered 200 Building Foam ✓', memberName: 'Navigator Rex', timestamp: '2026-03-20T09:00:00Z' },
+  { id: 'act-6', type: 'fleet_rsvp', description: 'Navigator Rex RSVP\'d "coming" for EG1-FRK Perimeter Sweep', memberName: 'Navigator Rex', timestamp: '2026-03-19T15:30:00Z' },
+  { id: 'act-7', type: 'goal_created', description: 'Goal "AM1-9KK Full System Survey" created', memberName: 'Scout Lyra', timestamp: '2026-03-21T00:00:00Z' },
+  { id: 'act-8', type: 'member_joined', description: 'Recruit Nova applied to join Tribe Alpha', memberName: 'Recruit Nova', timestamp: '2026-03-22T00:00:00Z' },
+  { id: 'act-9', type: 'base_added', description: 'Scout Lyra added base in EG1-FRK at P1-L5', memberName: 'Scout Lyra', systemName: 'EG1-FRK', timestamp: '2026-03-19T10:00:00Z' },
+  { id: 'act-10', type: 'threat_alert', description: 'Iron Wolves raiding party spotted in EG1-FRK', systemName: 'EG1-FRK', timestamp: '2026-03-20T14:00:00Z' },
+  { id: 'act-11', type: 'lpoint_updated', description: 'P1-L2 in EG1-FRK marked as enemy occupied', systemName: 'EG1-FRK', timestamp: '2026-03-21T04:00:00Z' },
+  { id: 'act-12', type: 'goal_created', description: 'Alliance goal "Frontier Coalition Trade Route" created', memberName: 'Commander Zara', timestamp: '2026-03-22T00:00:00Z' },
+];
+
+/* ── Mock Feedback ── */
+
+export const MOCK_FEEDBACK: FeedbackEntry[] = [
+  {
+    id: 'fb-1', tribeId: 'tribe-alpha', category: 'suggestion',
+    message: 'We should prioritize scouting outer orbital zones in AM1-9KK before deploying more gates. The resource data is critical for efficient logistics.',
+    anonymous: false, authorAddress: '0xplayer_a', authorName: 'Navigator Rex',
+    createdAt: '2026-03-21T14:00:00Z',
+    upvotes: ['0xalpha_leader_address', '0xplayer_c'],
+    downvotes: [],
+  },
+  {
+    id: 'fb-2', tribeId: 'tribe-alpha', category: 'issue',
+    message: 'The gate in AM1-9KK still needs 160 Building Foam. Can we set a hard deadline? Engineer Kael has been sitting on a partial delivery for days.',
+    targetMemberId: 'm3', targetMemberName: 'Engineer Kael',
+    anonymous: true,
+    createdAt: '2026-03-22T06:00:00Z',
+    upvotes: ['0xplayer_a'],
+    downvotes: [],
+  },
+  {
+    id: 'fb-3', tribeId: 'tribe-alpha', category: 'general',
+    message: 'Great work securing the gated network! 13 systems is impressive for week one. Let\'s keep this momentum going.',
+    anonymous: false, authorAddress: '0xalpha_leader_address', authorName: 'Commander Zara',
+    createdAt: '2026-03-22T09:00:00Z',
+    upvotes: ['0xplayer_a', '0xplayer_b', '0xplayer_c'],
+    downvotes: [],
+  },
+  {
+    id: 'fb-4', tribeId: 'tribe-alpha', category: 'goal',
+    message: 'The alliance trade route to A59-J0L should also include a shared storage unit for cross-tribe resource trading. Makes the whole cooperation more useful.',
+    targetGoalId: 'goal-5', targetGoalTitle: '[Alliance] Frontier Coalition Trade Route',
+    anonymous: false, authorAddress: '0xplayer_c', authorName: 'Scout Lyra',
+    createdAt: '2026-03-22T10:30:00Z',
+    upvotes: ['0xalpha_leader_address'],
+    downvotes: ['0xplayer_b'],
+  },
+  {
+    id: 'fb-5', tribeId: 'tribe-alpha', category: 'member',
+    message: 'Scout Lyra consistently delivers the best scouting reports. Recommend promoting her to veteran status for trusted clearance.',
+    targetMemberId: 'm4', targetMemberName: 'Scout Lyra',
+    anonymous: false, authorAddress: '0xplayer_a', authorName: 'Navigator Rex',
+    createdAt: '2026-03-22T11:00:00Z',
+    upvotes: ['0xalpha_leader_address', '0xplayer_b'],
+    downvotes: [],
+  },
+];

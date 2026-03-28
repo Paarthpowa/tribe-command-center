@@ -12,6 +12,7 @@ const roleConfig = {
 const clearanceColors: Record<MemberClearance, string> = {
   pending: '#6b7280',
   member: '#22d3ee',
+  veteran: '#22c55e',
   officer: '#6366f1',
   leader: '#f59e0b',
 };

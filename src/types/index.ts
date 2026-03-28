@@ -2,7 +2,7 @@
 
 /* ── Access Control ── */
 
-export type MemberClearance = 'pending' | 'member' | 'officer' | 'leader';
+export type MemberClearance = 'pending' | 'member' | 'veteran' | 'officer' | 'leader';
 export type GoalClassification = 'normal' | 'classified' | 'top-secret';
 export type MemberStatus = 'pending' | 'approved' | 'rejected';
 
@@ -372,4 +372,6 @@ export interface FeedbackEntry {
   createdAt: string;
   /** Upvotes from other members (addresses) */
   upvotes: string[];
+  /** Downvotes from other members (addresses) */
+  downvotes: string[];
 }

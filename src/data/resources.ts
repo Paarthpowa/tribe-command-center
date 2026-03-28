@@ -8,10 +8,10 @@
 /* ── Ore Types (found in asteroid belts — what systems "have") ── */
 
 export const ORES = [
-  'Common Ore',
-  'Metal-rich Ore',
-  'Carbonaceous Ore',
-  'Deep-Core Metallic Ore',
+  'Char',
+  'Slag',
+  'Ingot',
+  'Comet',
   // Aestasium variants (rare)
   'Adaptive Core Aestasium',
   'Agile Core Aestasium',
@@ -121,10 +121,10 @@ export type StructureName = (typeof STRUCTURES)[number];
 /* ── Ore → Refinery output mapping ── */
 
 export const ORE_YIELDS: Record<string, string[]> = {
-  'Common Ore': ['Carbonaceous Materials', 'Silicates'],
-  'Metal-rich Ore': ['Silicates', 'Heavy Metals'],
-  'Carbonaceous Ore': ['Carbonaceous Materials', 'Water Ice'],
-  'Deep-Core Metallic Ore': ['Heavy Metals'],
+  'Char': ['Carbonaceous Materials', 'Silicates'],
+  'Slag': ['Silicates', 'Heavy Metals'],
+  'Ingot': ['Carbonaceous Materials', 'Water Ice'],
+  'Comet': ['Heavy Metals'],
   'Adaptive Core Aestasium': ['Carbonaceous Materials', 'Water Ice'],
   'Agile Core Aestasium': ['Carbonaceous Materials'],
   'Solidifying Core Aestasium': ['Heavy Metals'],
