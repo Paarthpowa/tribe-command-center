@@ -2,6 +2,7 @@ import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
 import { Shield, Star, User, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react';
 import type { MemberClearance } from '../types';
+import { isContractDeployed, buildAddMemberTx } from '../lib/sui';
 
 const roleConfig = {
   leader: { label: 'Leader', icon: Shield, color: 'var(--accent-amber)' },
@@ -68,7 +69,16 @@ export function MembersPage() {
                 </div>
                 <button
                   onClick={() => {
-                    if (confirm(`Approve ${m.name} as a tribe member?`)) approveMember(m.id);
+                    if (confirm(`Approve ${m.name} as a tribe member?`)) {
+                      // Build on-chain membership tx if contract is deployed
+                      if (isContractDeployed() && m.address) {
+                        try {
+                          buildAddMemberTx(m.address, m.role ?? 'member');
+                          // TODO: sign & execute via wallet once contract is deployed
+                        } catch { /* continue with local approval */ }
+                      }
+                      approveMember(m.id);
+                    }
                   }}
                   style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#22c55e20', color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >

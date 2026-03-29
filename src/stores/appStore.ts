@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus, FeedbackEntry } from '../types';
+import type { Goal, Tribe, TribeMember, TribeSystem, WorldSystem, Contribution, MemberClearance, SystemCategory, TribeBase, ScoutingLog, LagrangePoint, ActivityEvent, OrbitalZone, Alliance, FleetOperation, FleetRSVPStatus, FeedbackEntry, RiftSighting } from '../types';
 import { MOCK_GOALS, MOCK_TRIBE, MOCK_MEMBERS, MOCK_SYSTEMS, MOCK_ALLIANCE, MOCK_FLEETS, MOCK_ACTIVITIES, MOCK_FEEDBACK } from '../data/mock';
 import systemsBundleData from '../data/systems-bundle.json';
 
@@ -78,6 +78,7 @@ interface AppState {
   addBase: (systemId: number, base: TribeBase) => void;
   removeBase: (systemId: number, memberName: string) => void;
   addScoutingLog: (systemId: number, log: ScoutingLog) => void;
+  addRiftSighting: (systemId: number, sighting: RiftSighting) => void;
   updateLagrangePoint: (systemId: number, lp: LagrangePoint) => void;
   addOrbitalZone: (systemId: number, zone: OrbitalZone) => void;
   updateOrbitalZone: (systemId: number, zoneName: string, updates: Partial<OrbitalZone>) => void;
@@ -404,6 +405,18 @@ export const useAppStore = create<AppState>()(
         }));
         const sys = get().systems.find((s) => s.id === systemId);
         get().addActivity({ type: 'scout_report', description: `${log.reportedBy} scouted ${sys?.name ?? 'system'}`, memberName: log.reportedBy, systemName: sys?.name });
+      },
+
+      addRiftSighting: (systemId, sighting) => {
+        set((s) => ({
+          systems: s.systems.map((sys) =>
+            sys.id === systemId
+              ? { ...sys, riftSightings: [...(sys.riftSightings ?? []), sighting] }
+              : sys,
+          ),
+        }));
+        const sys = get().systems.find((s) => s.id === systemId);
+        get().addActivity({ type: 'scout_report', description: `${sighting.reportedBy} reported rift in ${sys?.name ?? 'system'}${sighting.type ? ` (${sighting.type})` : ''}`, memberName: sighting.reportedBy, systemName: sys?.name });
       },
 
       updateLagrangePoint: (systemId, lp) =>

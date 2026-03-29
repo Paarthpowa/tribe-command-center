@@ -34,6 +34,20 @@ body {
   background: rgba(99, 102, 241, 0.3);
 }
 
+/* Dark-themed native select dropdowns */
+select {
+  background-color: #1a1e2e !important;
+  color: #e2e8f0 !important;
+}
+select option {
+  background-color: #1a1e2e;
+  color: #e2e8f0;
+}
+select option:hover,
+select option:checked {
+  background-color: #2d3348;
+}
+
 @keyframes slideInRight {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

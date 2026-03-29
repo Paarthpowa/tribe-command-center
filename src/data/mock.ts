@@ -294,6 +294,7 @@ export const MOCK_GOALS: Goal[] = [
         contributions: [
           { id: 'c1', taskId: 'task-1', memberAddress: '0xplayer_a', memberName: 'Navigator Rex', resource: 'Building Foam', pledged: 200, delivered: 200, status: 'delivered', createdAt: '2026-03-19T00:00:00Z', deadline: '2026-03-22T00:00:00Z', onTime: true },
           { id: 'c2', taskId: 'task-1', memberAddress: '0xplayer_b', memberName: 'Engineer Kael', resource: 'Building Foam', pledged: 260, delivered: 100, status: 'partial', createdAt: '2026-03-19T12:00:00Z', deadline: '2026-03-25T00:00:00Z' },
+          { id: 'c10', taskId: 'task-1', memberAddress: '0xplayer_c', memberName: 'Scout Lyra', resource: 'Building Foam', pledged: 50, delivered: 50, status: 'delivered', createdAt: '2026-03-20T08:00:00Z', deadline: '2026-03-23T00:00:00Z', onTime: true },
         ],
       },
       {
@@ -352,7 +353,9 @@ export const MOCK_GOALS: Goal[] = [
         requirements: [
           { resource: 'Building Foam', amount: 120 },
         ],
-        contributions: [],
+        contributions: [
+          { id: 'c12', taskId: 'task-4', memberAddress: '0xplayer_c', memberName: 'Scout Lyra', resource: 'Building Foam', pledged: 40, delivered: 40, status: 'delivered', createdAt: '2026-03-21T10:00:00Z', deadline: '2026-03-24T00:00:00Z', onTime: true },
+        ],
       },
     ],
   },
@@ -381,6 +384,7 @@ export const MOCK_GOALS: Goal[] = [
         requirements: [{ resource: 'Reinforced Alloys', amount: 20 }],
         contributions: [
           { id: 'c3', taskId: 'task-5', memberAddress: '0xplayer_b', memberName: 'Engineer Kael', resource: 'Reinforced Alloys', pledged: 20, delivered: 20, status: 'delivered', createdAt: '2026-03-17T00:00:00Z', deadline: '2026-03-20T00:00:00Z', onTime: true },
+          { id: 'c11', taskId: 'task-5', memberAddress: '0xplayer_c', memberName: 'Scout Lyra', resource: 'Reinforced Alloys', pledged: 5, delivered: 5, status: 'delivered', createdAt: '2026-03-17T08:00:00Z', deadline: '2026-03-19T00:00:00Z', onTime: true },
         ],
       },
     ],
@@ -473,7 +477,9 @@ export const MOCK_GOALS: Goal[] = [
         systemId: 30019622,
         systemName: 'A59-J0L',
         requirements: [{ resource: 'Building Foam', amount: 460 }],
-        contributions: [],
+        contributions: [
+          { id: 'c13', taskId: 'task-9', memberAddress: '0xplayer_c', memberName: 'Scout Lyra', resource: 'Building Foam', pledged: 80, delivered: 80, status: 'delivered', createdAt: '2026-03-23T14:00:00Z', deadline: '2026-03-26T00:00:00Z', onTime: true },
+        ],
       },
     ],
   },

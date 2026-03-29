@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { GlassCard } from '../components/ui';
 import { StarMap } from '../components/StarMap';
 import { SystemPicker } from '../components/SystemPicker';
@@ -231,10 +232,13 @@ function SystemCard({
 
 export function IntelPage() {
   const { systems, goals, worldSystems, claimSystem, claimGatedNetwork, unclaimSystem, setHQ } = useAppStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<SystemCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [threatFilter, setThreatFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all');
   const [showOnlyWithBases, setShowOnlyWithBases] = useState(false);
+  const [showOnlyWithRifts, setShowOnlyWithRifts] = useState(false);
+  const [resourceFilter, setResourceFilter] = useState<string>('all');
   const [selectedSystem, setSelectedSystem] = useState<number | null>(null);
   const [showClaim, setShowClaim] = useState(false);
   const [claimMode, setClaimMode] = useState<'single' | 'network'>('single');
@@ -245,6 +249,21 @@ export function IntelPage() {
   const claimedIds = useMemo(() => new Set(systems.map((s) => s.id)), [systems]);
 
   const detailSystem = detailSystemId != null ? systems.find(s => s.id === detailSystemId) : null;
+
+  // Read URL params on mount (e.g. /intel?resource=Comet)
+  useEffect(() => {
+    const r = searchParams.get('resource');
+    if (r) { setResourceFilter(r); setSearchParams({}, { replace: true }); }
+    const rifts = searchParams.get('rifts');
+    if (rifts === '1') { setShowOnlyWithRifts(true); setSearchParams({}, { replace: true }); }
+  }, []);
+
+  // Collect all unique resources across systems
+  const allResources = useMemo(() => {
+    const set = new Set<string>();
+    systems.forEach(s => s.resources?.forEach(r => set.add(r)));
+    return [...set].sort();
+  }, [systems]);
 
   const filtered = useMemo(() => {
     let result = selectedSystem
@@ -275,8 +294,16 @@ export function IntelPage() {
       result = result.filter((s) => (s.bases?.length ?? 0) > 0);
     }
 
+    if (showOnlyWithRifts) {
+      result = result.filter((s) => (s.riftSightings?.length ?? 0) > 0);
+    }
+
+    if (resourceFilter !== 'all') {
+      result = result.filter((s) => s.resources?.includes(resourceFilter));
+    }
+
     return result;
-  }, [systems, selectedSystem, filter, searchQuery, threatFilter, showOnlyWithBases]);
+  }, [systems, selectedSystem, filter, searchQuery, threatFilter, showOnlyWithBases, showOnlyWithRifts, resourceFilter]);
 
   // Summary stats
   const totalRifts = systems.reduce((acc, s) => acc + (s.riftSightings?.length ?? 0), 0);
@@ -467,7 +494,7 @@ export function IntelPage() {
           onChange={e => setThreatFilter(e.target.value as typeof threatFilter)}
           style={{
             padding: '8px 10px', borderRadius: 6, fontSize: 12,
-            background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-subtle)',
+            background: '#1a1e2e', border: '1px solid var(--border-subtle)',
             color: 'var(--text-primary)', outline: 'none',
           }}
         >
@@ -480,6 +507,22 @@ export function IntelPage() {
           <input type="checkbox" checked={showOnlyWithBases} onChange={e => setShowOnlyWithBases(e.target.checked)} style={{ accentColor: '#22d3ee' }} />
           Has bases
         </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showOnlyWithRifts} onChange={e => setShowOnlyWithRifts(e.target.checked)} style={{ accentColor: '#a855f7' }} />
+          Has rifts
+        </label>
+        <select
+          value={resourceFilter}
+          onChange={e => setResourceFilter(e.target.value)}
+          style={{
+            padding: '8px 10px', borderRadius: 6, fontSize: 12,
+            background: '#1a1e2e', border: '1px solid var(--border-subtle)',
+            color: 'var(--text-primary)', outline: 'none',
+          }}
+        >
+          <option value="all">All Resources</option>
+          {allResources.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
       </div>
 
       {/* System cards */}

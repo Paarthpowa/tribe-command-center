@@ -66,6 +66,7 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
 
   const [showAddBase, setShowAddBase] = useState(false);
   const [showScoutForm, setShowScoutForm] = useState(false);
+  const [showRiftForm, setShowRiftForm] = useState(false);
   const [showEditCategory, setShowEditCategory] = useState(false);
   const [editThreatLevel, setEditThreatLevel] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>('zones');
@@ -201,6 +202,9 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
           <button onClick={() => setShowScoutForm(!showScoutForm)} style={actionBtnStyle('#6366f1')}>
             <Eye size={12} /> Scout Report
           </button>
+          <button onClick={() => setShowRiftForm(!showRiftForm)} style={actionBtnStyle('#a855f7')}>
+            <Gem size={12} /> Report Rift
+          </button>
           <button onClick={() => { unclaimSystem(system.id); onClose(); }} style={{
             ...actionBtnStyle('#ef4444'), marginLeft: 'auto',
           }}>
@@ -227,6 +231,14 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
             systemId={system.id}
             lPoints={lPoints}
             onSubmit={() => setShowScoutForm(false)}
+          />
+        )}
+
+        {/* Rift Report Form */}
+        {showRiftForm && (
+          <RiftReportForm
+            systemId={system.id}
+            onSubmit={() => setShowRiftForm(false)}
           />
         )}
 
@@ -432,16 +444,20 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
         </SectionToggle>
 
         {/* Rift Sightings — alert system for crude fuel POIs */}
-        {system.riftSightings && system.riftSightings.length > 0 && (
-          <SectionToggle
-            title={`Rift Sightings (${system.riftSightings.length})`}
-            icon={<Gem size={14} />}
-            isOpen={activeSection === 'rifts'}
-            onToggle={() => setActiveSection(activeSection === 'rifts' ? null : 'rifts')}
-          >
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
-              Rifts are temporary crude ore spawns (~3 day lifespan). Report sightings so tribe miners with lenses can extract them. Long-term data tracks spawn patterns.
-            </div>
+        <SectionToggle
+          title={`Rift Sightings (${system.riftSightings?.length ?? 0})`}
+          icon={<Gem size={14} />}
+          isOpen={activeSection === 'rifts'}
+          onToggle={() => setActiveSection(activeSection === 'rifts' ? null : 'rifts')}
+        >
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.4 }}>
+            Rifts are temporary crude ore spawns (~3 day lifespan). Report sightings so tribe miners with lenses can extract them. Long-term data tracks spawn patterns.
+          </div>
+          {(!system.riftSightings || system.riftSightings.length === 0) ? (
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0' }}>
+              No rift sightings reported. Click "Report Rift" above to add one.
+            </p>
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[...system.riftSightings].reverse().map(rift => (
                 <div key={rift.id} style={{
@@ -450,7 +466,7 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
                   background: 'rgba(168,85,247,0.06)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span style={{ color: '#a855f7', fontSize: 14 }}>{"\uD83C\uDF00"}</span>
+                    <span style={{ color: '#a855f7', fontSize: 14 }}>{'\uD83C\uDF00'}</span>
                     <strong style={{ color: 'var(--text-primary)' }}>{rift.reportedBy}</strong>
                     {rift.type && (
                       <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
@@ -465,8 +481,8 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
                 </div>
               ))}
             </div>
-          </SectionToggle>
-        )}
+          )}
+        </SectionToggle>
 
         {/* Resources & Dangers */}
         {(system.resources?.length || system.dangers?.length) && (
@@ -799,6 +815,84 @@ function ScoutReportForm({ systemId, lPoints, onSubmit }: { systemId: number; lP
           }}>
             <Send size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
             Submit Report
+          </button>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
+const RIFT_TYPES = ['Old Crude (SOF)', 'Elder Crude (EU)', 'Ancient Crude', 'Unknown'];
+
+function RiftReportForm({ systemId, onSubmit }: { systemId: number; onSubmit: () => void }) {
+  const { addRiftSighting } = useAppStore();
+  const member = useAppStore(s => s.currentMember());
+
+  const [reporter, setReporter] = useState(member?.name ?? '');
+  const [riftType, setRiftType] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const handleSubmit = () => {
+    const trimmedReporter = reporter.trim();
+    if (!trimmedReporter) return;
+
+    addRiftSighting(systemId, {
+      id: `rift-${Date.now()}`,
+      systemId,
+      reportedBy: trimmedReporter,
+      timestamp: new Date().toISOString(),
+      type: riftType || undefined,
+      notes: notes.trim() || undefined,
+    });
+
+    setReporter('');
+    setRiftType('');
+    setNotes('');
+    onSubmit();
+  };
+
+  return (
+    <GlassCard style={{
+      padding: '14px 16px', marginBottom: 12,
+      background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.2)',
+    }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#c084fc', marginBottom: 10 }}>
+        <Gem size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+        Report Rift Sighting
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <input
+          type="text"
+          value={reporter}
+          onChange={e => setReporter(e.target.value)}
+          placeholder="Your name..."
+          style={inputStyle}
+        />
+        <select
+          value={riftType}
+          onChange={e => setRiftType(e.target.value)}
+          style={{ ...inputStyle, ...selectDarkStyle }}
+        >
+          <option value="">Rift type (optional)...</option>
+          {RIFT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Location details, ore types spotted, estimated remaining time..."
+          rows={3}
+          style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={handleSubmit} disabled={!reporter.trim()} style={{
+            padding: '6px 16px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+            background: reporter.trim() ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.04)',
+            color: reporter.trim() ? '#c084fc' : 'var(--text-muted)',
+            border: `1px solid ${reporter.trim() ? 'rgba(168,85,247,0.3)' : 'var(--border-subtle)'}`,
+            cursor: reporter.trim() ? 'pointer' : 'default',
+          }}>
+            <Send size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            Report Rift
           </button>
         </div>
       </div>

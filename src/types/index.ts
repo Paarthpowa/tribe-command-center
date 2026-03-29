@@ -264,6 +264,8 @@ export interface Contribution {
   deadline?: string;
   /** Whether delivery was on time */
   onTime?: boolean;
+  /** Sui transaction digest — set when pledge is recorded on-chain */
+  txDigest?: string;
 }
 
 export interface Tribe {

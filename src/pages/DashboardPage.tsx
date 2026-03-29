@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { GoalTile } from '../components/GoalTile';
 import { GlassCard } from '../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import { Target, CheckCircle, Clock, Users, Globe, Gem, Activity, AlertTriangle, BarChart3 } from 'lucide-react';
 import { getPriorityColor } from '../lib/helpers';
+import { ChainStatusCard } from '../components/ChainStatusCard';
 
 export function DashboardPage() {
   const { tribe, members, visibleGoals, systems, activities } = useAppStore();
+  const navigate = useNavigate();
   const goals = visibleGoals();
   const [showTimeline, setShowTimeline] = useState(false);
 
@@ -112,6 +115,7 @@ export function DashboardPage() {
             </div>
           </GlassCard>
         ))}
+        <ChainStatusCard />
       </div>
 
       {/* Resource Aggregation & Activity Feed */}
@@ -146,7 +150,12 @@ export function DashboardPage() {
           {/* Per-resource bars */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {resourceCoverage.counts.map(([resource, count]) => (
-              <div key={resource} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div
+                key={resource}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 0', borderRadius: 4 }}
+                onClick={() => navigate(`/intel?resource=${encodeURIComponent(resource)}`)}
+                title={`Filter Intel by ${resource}`}
+              >
                 <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)' }}>{resource}</span>
                 <div style={{ width: 80, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)' }}>
                   <div style={{

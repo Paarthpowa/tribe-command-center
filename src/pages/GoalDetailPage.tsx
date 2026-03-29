@@ -15,6 +15,7 @@ import {
 } from '../lib/helpers';
 import { ArrowLeft, MapPin, Calendar } from 'lucide-react';
 import type { Contribution, GoalStatus } from '../types';
+import { isContractDeployed, buildMakePledgeTx } from '../lib/sui';
 
 export function GoalDetailPage() {
   const { goalId } = useParams<{ goalId: string }>();
@@ -53,6 +54,26 @@ export function GoalDetailPage() {
   const pledgeTask = pledgeTaskId ? goal.tasks.find((t) => t.id === pledgeTaskId) : null;
 
   const handlePledgeSubmit = (contribution: Contribution) => {
+    // Build on-chain pledge transaction (if contract is deployed)
+    if (isContractDeployed() && goalId) {
+      try {
+        const deadlineEpoch = contribution.deadline
+          ? Math.floor(new Date(contribution.deadline).getTime() / 1000)
+          : 0;
+        buildMakePledgeTx(
+          goalId,
+          contribution.taskId,
+          contribution.resource,
+          contribution.pledged,
+          deadlineEpoch,
+        );
+        // TODO: Sign & execute via wallet adapter once contract is deployed
+        // const result = await signAndExecute({ transaction: tx });
+        // contribution.txDigest = result.digest;
+      } catch {
+        // On-chain recording failed — continue with local pledge
+      }
+    }
     addContribution(contribution.taskId, contribution);
     setPledgeTaskId(null);
   };
