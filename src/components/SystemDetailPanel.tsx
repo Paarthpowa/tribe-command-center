@@ -826,9 +826,8 @@ const RIFT_TYPES = ['Old Crude (SOF)', 'Elder Crude (EU)', 'Ancient Crude', 'Unk
 
 function RiftReportForm({ systemId, onSubmit }: { systemId: number; onSubmit: () => void }) {
   const { addRiftSighting } = useAppStore();
-  const member = useAppStore(s => s.currentMember());
 
-  const [reporter, setReporter] = useState(member?.name ?? '');
+  const [reporter, setReporter] = useState('');
   const [riftType, setRiftType] = useState('');
   const [notes, setNotes] = useState('');
 

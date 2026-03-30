@@ -6,7 +6,7 @@ import { GlassCard } from '../components/ui';
 import { ProgressRing } from '../components/ProgressRing';
 import { Target, CheckCircle, Clock, Users, Globe, Gem, Activity, AlertTriangle, BarChart3 } from 'lucide-react';
 import { getPriorityColor } from '../lib/helpers';
-import { ChainStatusCard } from '../components/ChainStatusCard';
+
 
 export function DashboardPage() {
   const { tribe, members, visibleGoals, systems, activities } = useAppStore();
@@ -115,7 +115,6 @@ export function DashboardPage() {
             </div>
           </GlassCard>
         ))}
-        <ChainStatusCard />
       </div>
 
       {/* Resource Aggregation & Activity Feed */}

@@ -323,31 +323,24 @@ const TEASER_SLIDES: TeaserSlide[] = [
     ],
     durationSec: 2.5, fadeIn: 0.4, fadeOut: 0.5,
   },
-  // 5.5-14s: "TRIBE COMMAND CENTER" big reveal (voice: 5.92-12.49s)
+  // 5.5-21.0s: "TRIBE COMMAND CENTER" big reveal — hold until voice finishes "replace chaos" (~20s)
   {
     lines: [
       { text: 'TRIBE COMMAND CENTER', fontSize: 80, color: 'white', yOffset: -50 },
       { text: 'A Strategic Coordination Platform', fontSize: 30, color: '0x94a3b8', yOffset: 25 },
       { text: 'for EVE Frontier', fontSize: 32, color: '0x22d3ee', yOffset: 65 },
     ],
-    durationSec: 8.5, fadeIn: 0.8, fadeOut: 1.0,
+    durationSec: 15.5, fadeIn: 0.8, fadeOut: 1.0,
   },
-  // 14-23.08s: Feature keywords (voice: 13.16-22.21s)
+  // 21.0-32.08s: Feature keywords + closing (fadeIn ~1s so visible at ~22s, holds to end)
   {
     lines: [
-      { text: 'MAP GATE NETWORKS', fontSize: 44, color: '0x22d3ee', yOffset: -70 },
-      { text: 'COORDINATE BUILDING PROJECTS', fontSize: 44, color: 'white', yOffset: 0 },
-      { text: 'LEAD FLEET OPERATIONS', fontSize: 44, color: '0x22d3ee', yOffset: 70 },
+      { text: 'MAP GATE NETWORKS', fontSize: 44, color: '0x22d3ee', yOffset: -90 },
+      { text: 'COORDINATE BUILDING PROJECTS', fontSize: 44, color: 'white', yOffset: -20 },
+      { text: 'LEAD FLEET OPERATIONS', fontSize: 44, color: '0x22d3ee', yOffset: 50 },
+      { text: 'ALL UNIFIED. ALL IN ONE PLACE.', fontSize: 36, color: '0x94a3b8', yOffset: 120 },
     ],
-    durationSec: 9.08, fadeIn: 0.6, fadeOut: 0.8,
-  },
-  // 23.08-32.08s: "ALL UNIFIED. ALL IN ONE PLACE." (voice: 25.68-31.76s)
-  {
-    lines: [
-      { text: 'ALL UNIFIED.', fontSize: 66, color: 'white', yOffset: -35 },
-      { text: 'ALL IN ONE PLACE.', fontSize: 66, color: '0x22d3ee', yOffset: 45 },
-    ],
-    durationSec: 9.0, fadeIn: 0.8, fadeOut: 1.2,
+    durationSec: 11.08, fadeIn: 1.0, fadeOut: 1.2,
   },
 ];
 

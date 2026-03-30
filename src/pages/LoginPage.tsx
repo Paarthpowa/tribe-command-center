@@ -1,5 +1,6 @@
 import { GlassCard } from '../components/ui';
 import { Shield, Clock, XCircle, Users } from 'lucide-react';
+import { isContractDeployed } from '../lib/sui';
 
 const DEMO_ROLES = [
   { key: 'leader', label: 'Commander Zara', desc: 'Leader — full access', color: '#fbbf24' },
@@ -153,6 +154,9 @@ export function LoginPage({ onConnect, hasEveVault, memberStatus, onDemoLogin }:
               <Users size={14} color="var(--text-muted)" />
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Demo Access
+              </span>
+              <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 999, background: isContractDeployed() ? 'rgba(16,185,129,0.15)' : 'rgba(34,211,238,0.12)', color: isContractDeployed() ? 'var(--accent-emerald)' : 'var(--accent-cyan)', border: `1px solid ${isContractDeployed() ? 'var(--accent-emerald)' : 'var(--accent-cyan)'}30`, fontWeight: 600 }}>
+                {isContractDeployed() ? 'On-Chain' : 'Demo Mode — Sui Move ready'}
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

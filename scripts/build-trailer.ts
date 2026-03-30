@@ -27,7 +27,7 @@ const BG_MUSIC = path.resolve(RECORDINGS_DIR, 'bg-ambient.mp3');
 // Output files
 const TITLE_CARD = path.join(SEGMENTS_DIR, '_title-card.mp4');
 const OUTRO_CARD = path.join(SEGMENTS_DIR, '_outro-card.mp4');
-const TRAILER_OUTPUT = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v2.mp4');
+const TRAILER_OUTPUT = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v3.mp4');
 
 // Voiced segments in order
 const SEGMENTS = [
