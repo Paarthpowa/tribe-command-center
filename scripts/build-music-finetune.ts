@@ -147,6 +147,14 @@ const TRACKS: TrackDef[] = [
     fadeIn: 3.5,
     fadeOut: 5.0,
   },
+  {
+    name: 'corporate-suspense',
+    file: 'vasilyatsevich-corporate-power-suspense-sci-fi-background-145902.mp3',
+    origVol: 0.12,
+    quietVol: 0.08,
+    fadeIn: 3.0,
+    fadeOut: 5.0,
+  },
 ];
 
 /**
@@ -178,6 +186,36 @@ function buildVariantA(
   );
 
   return applyPolish(output, track.name, 'A-quiet');
+}
+
+/**
+ * Variant N: Normal (original) volume — music at origVol.
+ */
+function buildVariantNormal(
+  baseVideo: string, track: TrackDef, videoDur: number,
+): string {
+  const musicPath = path.join(MUSIC_DIR, track.file);
+  const musicDur = getDuration(musicPath);
+  const trimEnd = Math.min(musicDur, videoDur);
+  const fadeOutSt = Math.max(0, trimEnd - track.fadeOut);
+
+  const output = path.join(RECORDINGS_DIR, `trailer-${track.name}-N-normal.mp4`);
+
+  exec(
+    `ffmpeg -y -i "${baseVideo}" -i "${musicPath}" ` +
+    `-filter_complex "` +
+      `[0:a]volume=1.0,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[voice];` +
+      `[1:a]atrim=0:${trimEnd.toFixed(1)},asetpts=PTS-STARTPTS,` +
+        `volume=${track.origVol},` +
+        `afade=t=in:st=0:d=${track.fadeIn},` +
+        `afade=t=out:st=${fadeOutSt.toFixed(1)}:d=${track.fadeOut},` +
+        `aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[music];` +
+      `[voice][music]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]` +
+    `" -map 0:v -map "[aout]" -c:v copy -c:a aac -b:a 192k -movflags +faststart "${output}"`,
+    `${track.name} N: normal (vol=${track.origVol})`,
+  );
+
+  return applyPolish(output, track.name, 'N-normal');
 }
 
 /**
@@ -298,11 +336,11 @@ function applyPolish(inputPath: string, trackName: string, variant: string): str
 
 async function main() {
   console.log('════════════════════════════════════════════════════');
-  console.log('  Music Fine-Tuning — 3 variants × 2 tracks');
+  console.log('  Music Fine-Tuning — Final Variants');
   console.log('════════════════════════════════════════════════════');
-  console.log('  A) Overall quieter music');
-  console.log('  B) Sidechain duck (gentle) — music dips when voice speaks');
-  console.log('  C) Sidechain duck (strong) — music nearly mutes during speech\n');
+  console.log('  oblivion: A-quiet');
+  console.log('  tunetank-epic: A-quiet');
+  console.log('  corporate-suspense: A-quiet + N-normal\n');
 
   console.log('📦 Building base video with clean voiceover...');
   const { baseVideo, voiceTrack, videoDur } = buildBase();
@@ -314,7 +352,7 @@ async function main() {
     console.log(`  🎵 ${track.name.toUpperCase()}`);
     console.log(`${'═'.repeat(50)}`);
 
-    // A — global quiet
+    // A — global quiet (all tracks)
     const pA = buildVariantA(baseVideo, track, videoDur);
     results.push({
       label: `${track.name} A (quiet: vol=${track.quietVol})`,
@@ -323,23 +361,16 @@ async function main() {
       dur: getDuration(pA),
     });
 
-    // B — gentle duck
-    const pB = buildVariantB(baseVideo, voiceTrack, track, videoDur);
-    results.push({
-      label: `${track.name} B (gentle duck: ratio=3)`,
-      path: pB,
-      size: (fs.statSync(pB).size / 1024 / 1024).toFixed(2),
-      dur: getDuration(pB),
-    });
-
-    // C — strong duck
-    const pC = buildVariantC(baseVideo, voiceTrack, track, videoDur);
-    results.push({
-      label: `${track.name} C (strong duck: ratio=6)`,
-      path: pC,
-      size: (fs.statSync(pC).size / 1024 / 1024).toFixed(2),
-      dur: getDuration(pC),
-    });
+    // N — normal volume (corporate-suspense only)
+    if (track.name === 'corporate-suspense') {
+      const pN = buildVariantNormal(baseVideo, track, videoDur);
+      results.push({
+        label: `${track.name} N (normal: vol=${track.origVol})`,
+        path: pN,
+        size: (fs.statSync(pN).size / 1024 / 1024).toFixed(2),
+        dur: getDuration(pN),
+      });
+    }
   }
 
   // Cleanup base files
@@ -360,8 +391,7 @@ async function main() {
   }
 
   console.log(`\n  A = celkovo tichsia hudba (rovnomerne vsade)`);
-  console.log(`  B = gentle sidechain duck (hudba sa zjemni ked hovori hlas)`);
-  console.log(`  C = strong sidechain duck (hudba sa stisi vyrazne pri hlase)\n`);
+  console.log(`  N = normalna hlasitost hudby\n`);
 }
 
 main().catch(err => {

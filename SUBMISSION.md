@@ -18,16 +18,42 @@
 | **Package ID**       | *(set after Move contract deployment)* |
 | **Show on Projects Page** | ✅ Yes |
 
-### Description
+### Description (Version A — Detailed / Technical)
 
-**Tribe Command Center** is a strategic coordination platform for EVE Frontier tribes. It replaces spreadsheets and Discord chaos with a unified web application where tribe leaders can:
+> Use this version for the main submission or when you want to highlight depth and ambition.
 
-- **Map & claim gate networks** — interactive star-system intel map with system details, resource tracking, and sovereignty claims
-- **Coordinate building projects** — goal/task management with on-chain pledge system (Sui Move smart contracts)
-- **Lead fleet operations** — fleet creation, RSVP tracking, and reputation leaderboards
-- **Track contributions** — transparent pledge-deliver-approve workflow with soulbound Membership NFTs
+In EVE Frontier, civilization doesn't just happen — it's built from the ground up by tribes who coordinate across star systems, pool resources, and defend what they've claimed. But today, most of that coordination lives in spreadsheets, pinned Discord messages, and tribal knowledge that disappears when a leader goes offline.
 
-Built with **React 19 + Vite 8 + TypeScript + Zustand**, integrated with **Sui Move smart contracts** for on-chain membership NFTs, pledge records, and Smart Gate access control. Uses **@evefrontier/dapp-kit** for EVE Vault wallet connection and Smart Assembly integration.
+**Tribe Command Center** changes that.
+
+It's a real-time strategic coordination platform purpose-built for EVE Frontier tribes. A single web application replaces the patchwork of external tools with an integrated command hub where everything a tribe needs lives in one place:
+
+- **Interactive Intel Map** — Browse star systems, claim sovereignty zones, file rift sighting reports, and track gate network coverage. Search, filter, and drill into individual systems with resource overlays and historical intel.
+- **Goals & On-Chain Pledges** — Create strategic objectives, decompose them into tasks, and let members pledge resources directly via Sui Move smart contracts. The full lifecycle — pledge → deliver → approve — is tracked transparently, giving leaders verifiable proof of who contributed what.
+- **Fleet Operations** — Create fleet ops with objectives, timelines, and location tags. Members RSVP their ship class and the fleet roster updates in real time.
+- **Reputation & Leaderboard** — Every approved contribution feeds into a dynamic reputation score. Members earn rank through action, not words. The leaderboard highlights top contributors across all activity types.
+- **Soulbound Membership NFTs** — On-chain membership via Sui Move. Each member holds a non-transferable NFT that gates access to tribe-controlled Smart Gates in the EVE Frontier world.
+- **Alliance Diplomacy** — Track inter-tribe relations (allied, neutral, hostile) and manage diplomatic status at a glance.
+
+The app connects directly to EVE Frontier through **@evefrontier/dapp-kit**, supporting EVE Vault wallet login and Smart Assembly (SSU) embedding — meaning it can run inside the game client itself. On the blockchain side, Sui Move contracts handle membership minting, pledge records, and access control logic for Smart Gates.
+
+Built with React 19, Vite 8, TypeScript, Zustand, and Tailwind CSS. Deployed on Cloudflare Pages. Designed to be embedded in a Smart Storage Unit on Stillness.
+
+---
+
+### Description (Version B — Layperson-Friendly / Short)
+
+> Use this if the submission field is short or if you want judges to immediately "get it" without technical jargon.
+
+Imagine you're leading a tribe of 50 people in a massive space game. You need to coordinate who's mining where, which star systems your tribe controls, what resources to stockpile, and when the next fleet operation launches — all while rival tribes threaten your borders.
+
+Right now, most tribes manage all of that through scattered Discord channels and Google Sheets. It's messy, things get lost, and there's no way to verify who actually contributed.
+
+**Tribe Command Center** is the solution: a single web app where a tribe can see everything at once. An interactive star map shows your territory and intel. A goal system lets members pledge resources with blockchain-backed receipts — so contributions are transparent and verifiable. Fleet ops have built-in RSVP. A reputation leaderboard rewards the people who actually show up.
+
+It plugs directly into EVE Frontier. Members log in with their in-game wallet. The app can run inside the game client via Smart Storage Units. And every member gets a blockchain membership badge that can unlock tribe-only gates in the game world.
+
+One app. One tribe. Everything in one place.
 
 ---
 
@@ -117,9 +143,11 @@ VITE_OBJECT_ID=<your-ssu-object-id>
 
 | File | Description | Size |
 |------|-------------|------|
-| `tribe-command-center-trailer-v3.mp4` | Base trailer (voiceover only) | ~15.6 MB |
-| `tribe-command-center-trailer-v3-oblivion-A-quiet.mp4` | **Winner** — Oblivion music | ~16.6 MB |
-| `tribe-command-center-trailer-v3-tunetank-epic-A-quiet.mp4` | **Winner** — Epic music | ~16.6 MB |
+| `tribe-command-center-trailer-v3.mp4` | Base trailer (voiceover only) | ~16.1 MB |
+| `tribe-command-center-trailer-v3-oblivion-A-quiet.mp4` | Oblivion music (quiet) | ~17.1 MB |
+| `tribe-command-center-trailer-v3-tunetank-epic-A-quiet.mp4` | Epic music (quiet) | ~17.1 MB |
+| `tribe-command-center-trailer-v3-corporate-suspense-A-quiet.mp4` | Corporate Suspense music (quiet) | ~17.1 MB |
+| `tribe-command-center-trailer-v3-corporate-suspense-N-normal.mp4` | Corporate Suspense music (normal volume) | ~17.1 MB |
 
 All trailers: 2:44 duration, 1920×1080, h.264 + AAC, 25fps
 
