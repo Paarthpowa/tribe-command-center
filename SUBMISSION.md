@@ -14,8 +14,8 @@
 | **Project Logo**     | `recordings/tribe-command-center-logo-512.png` (512×512 PNG) |
 | **Project Name**     | Tribe Command Center |
 | **Track**            | General Track |
-| **Deployment Network** | Sui (devnet) |
-| **Package ID**       | `0x72d4dc01b26d6c22f52abb95e3ae06f743d55aa511894172f587b3f709c33cff` |
+| **Deployment Network** | Sui (testnet) |
+| **Package ID**       | `0x2be69ba2f40d64ea37c0c2f6310c97c3ef239ddcca26e2ec3141113807321ff2` |
 | **Show on Projects Page** | ✅ Yes |
 
 ### Description (Version A — Detailed / Technical)
