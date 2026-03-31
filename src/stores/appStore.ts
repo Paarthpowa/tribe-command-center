@@ -96,6 +96,9 @@ interface AppState {
   upvoteFeedback: (feedbackId: string, memberAddress: string) => void;
   downvoteFeedback: (feedbackId: string, memberAddress: string) => void;
   deleteFeedback: (feedbackId: string) => void;
+
+  /* Self-service join */
+  joinTribe: (address: string, name: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -254,6 +257,23 @@ export const useAppStore = create<AppState>()(
             m.id === memberId ? { ...m, clearance } : m,
           ),
         })),
+
+      joinTribe: (address, name) =>
+        set((s) => {
+          // Don't add duplicates
+          if (s.members.some((m) => m.address === address)) return s;
+          const newMember: TribeMember = {
+            id: `m-${Date.now()}`,
+            address,
+            name,
+            role: 'member',
+            status: 'approved',
+            clearance: 'member',
+            joinedAt: new Date().toISOString(),
+            reputation: { score: 50, totalPledges: 0, deliveredOnTime: 0, deliveredLate: 0, failedPledges: 0 },
+          };
+          return { members: [...s.members, newMember] };
+        }),
 
       /* ── Territory management ── */
 

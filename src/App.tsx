@@ -24,7 +24,7 @@ const DEMO_ACCOUNTS: Record<string, string> = {
 
 function App() {
   const { walletAddress, isConnected: evConnected, handleConnect, handleDisconnect, hasEveVault } = useConnection();
-  const { isConnected, setWallet, currentMember } = useAppStore();
+  const { isConnected, setWallet, currentMember, joinTribe, walletAddress: storeWallet } = useAppStore();
 
   // Sync EVE Vault connection state → Zustand store
   useEffect(() => {
@@ -49,15 +49,26 @@ function App() {
     try { handleDisconnect?.(); } catch { /* ignore if EVE Vault not connected */ }
   };
 
+  const handleJoinTribe = (name: string) => {
+    if (storeWallet) {
+      joinTribe(storeWallet, name);
+    }
+  };
+
   const member = currentMember();
 
   if (!isConnected) {
     return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} />;
   }
 
-  // Connected but member not found or not approved
-  if (!member || member.status !== 'approved') {
-    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus={member?.status === 'approved' ? null : (member?.status ?? 'pending')} onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} />;
+  // Connected but no member record → show welcome / join screen
+  if (!member) {
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus="new" onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} onJoinTribe={handleJoinTribe} />;
+  }
+
+  // Member exists but not approved
+  if (member.status !== 'approved') {
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus={member.status as 'pending' | 'rejected'} onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} />;
   }
 
   return (
