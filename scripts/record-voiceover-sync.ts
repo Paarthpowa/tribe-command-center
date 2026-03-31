@@ -763,20 +763,34 @@ async function runNewGoals(page: Page) {
  *  sweep, a deep-space extraction, or an all-out offensive..."
  *
  * Interactive flow:
- *  1. Navigate to Fleets page
- *  2. Click "New Fleet Op" → fill form live → submit
- *  3. Expand existing fleet → click RSVP "Coming"
- *  4. Quick visit to Members + Leaderboard
+ *  1. Navigate to Fleets page (upcoming fleets visible)
+ *  2. Expand "Past Operations" to show old fleets
+ *  3. Click "New Fleet Op" → fill form live → submit (appears in upcoming)
+ *  4. Expand existing fleet → click RSVP "Coming"
+ *  5. Quick visit to Members + Leaderboard
  */
 async function runNewFleetsReputation(page: Page) {
   const c = createSceneClock(NEW_SCENES[4].durationSec);
   console.log(`📍 FLEETS & REPUTATION (${NEW_SCENES[4].durationSec}s) — Fleet Creation + RSVP`);
 
-  // Navigate to Fleets
+  // Navigate to Fleets — upcoming fleet ops should be visible
   await navClick(page, 'Fleets');
   await sleep(1000);
-  await c.at(0.08); // ~2s
+  await c.at(0.06); // ~1.5s
   await checkpoint(page, 'new-32-fleets');
+
+  // Expand "Past Operations" to show old completed fleets
+  const pastOpsBtn = page.locator('button:has-text("Past Operations")').first();
+  if (await safeClick(page, pastOpsBtn, 2000)) {
+    await sleep(800);
+    await slowScroll(page, 300, 1000);
+    await checkpoint(page, 'new-32b-past-fleets');
+  }
+
+  // Scroll back up to top
+  await c.at(0.16); // ~4s
+  await scrollToTop(page);
+  await sleep(500);
 
   // CLICK "New Fleet Op" → CREATE FLEET LIVE
   const newFleetBtn = page.locator('button:has-text("New Fleet Op")').first();
@@ -794,7 +808,7 @@ async function runNewFleetsReputation(page: Page) {
     } catch { /* title input not found by placeholder */ }
 
     // Fill Goal/Objective
-    await c.at(0.20); // ~5s
+    await c.at(0.26); // ~6.5s
     const goalTextarea = page.locator('textarea[placeholder*="plan"]').first();
     try {
       await goalTextarea.waitFor({ state: 'visible', timeout: 2000 });
@@ -806,7 +820,7 @@ async function runNewFleetsReputation(page: Page) {
     await checkpoint(page, 'new-34-fleet-filled');
 
     // CLICK "Create Fleet Op"
-    await c.at(0.28); // ~7s
+    await c.at(0.32); // ~8s
     const createFleetBtn = page.locator('button:has-text("Create Fleet Op")').first();
     await safeClick(page, createFleetBtn, 2000);
     await sleep(1200);
@@ -814,7 +828,7 @@ async function runNewFleetsReputation(page: Page) {
   }
 
   // EXPAND EXISTING FLEET → RSVP
-  await c.at(0.40); // ~10s
+  await c.at(0.42); // ~10.5s
   // Click on the upcoming "ONG-CSK Deep Strike" fleet card
   const fleetCard = page.locator('text=ONG-CSK Deep Strike').first();
   if (await safeClick(page, fleetCard, 2000)) {

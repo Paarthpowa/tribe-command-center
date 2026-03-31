@@ -64,7 +64,7 @@ function getDuration(filePath: string): number {
 // ═══════════════════════════════════════════
 
 function buildBase(): { baseVideo: string; voiceTrack: string; videoDur: number } {
-  const existingTrailer = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v3.mp4');
+  const existingTrailer = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v4.mp4');
   if (!fs.existsSync(existingTrailer)) {
     console.error('❌ No existing trailer-v2. Run build-trailer.ts first!');
     process.exit(1);
@@ -310,7 +310,7 @@ function applyPolish(inputPath: string, trackName: string, variant: string): str
   const dur = getDuration(inputPath);
   const finalOutput = path.join(
     RECORDINGS_DIR,
-    `tribe-command-center-trailer-v3-${trackName}-${variant}.mp4`,
+    `tribe-command-center-trailer-v4-${trackName}-${variant}.mp4`,
   );
 
   exec(
@@ -340,7 +340,7 @@ async function main() {
   console.log('════════════════════════════════════════════════════');
   console.log('  oblivion: A-quiet');
   console.log('  tunetank-epic: A-quiet');
-  console.log('  corporate-suspense: A-quiet + N-normal\n');
+  console.log('  corporate-suspense: A-quiet\n');
 
   console.log('📦 Building base video with clean voiceover...');
   const { baseVideo, voiceTrack, videoDur } = buildBase();
@@ -360,17 +360,6 @@ async function main() {
       size: (fs.statSync(pA).size / 1024 / 1024).toFixed(2),
       dur: getDuration(pA),
     });
-
-    // N — normal volume (corporate-suspense only)
-    if (track.name === 'corporate-suspense') {
-      const pN = buildVariantNormal(baseVideo, track, videoDur);
-      results.push({
-        label: `${track.name} N (normal: vol=${track.origVol})`,
-        path: pN,
-        size: (fs.statSync(pN).size / 1024 / 1024).toFixed(2),
-        dur: getDuration(pN),
-      });
-    }
   }
 
   // Cleanup base files
@@ -390,8 +379,7 @@ async function main() {
     console.log(`     ${m}:${s}, ${r.size} MB — ${path.basename(r.path)}`);
   }
 
-  console.log(`\n  A = celkovo tichsia hudba (rovnomerne vsade)`);
-  console.log(`  N = normalna hlasitost hudby\n`);
+  console.log(`\n  A = celkovo tichsia hudba (rovnomerne vsade)\n`);
 }
 
 main().catch(err => {

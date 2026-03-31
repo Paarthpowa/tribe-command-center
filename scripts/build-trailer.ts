@@ -27,7 +27,7 @@ const BG_MUSIC = path.resolve(RECORDINGS_DIR, 'bg-ambient.mp3');
 // Output files
 const TITLE_CARD = path.join(SEGMENTS_DIR, '_title-card.mp4');
 const OUTRO_CARD = path.join(SEGMENTS_DIR, '_outro-card.mp4');
-const TRAILER_OUTPUT = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v3.mp4');
+const TRAILER_OUTPUT = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v4.mp4');
 
 // Voiced segments in order
 const SEGMENTS = [
@@ -247,6 +247,14 @@ function buildChapterLabel(cfg: ChapterConfig): string {
 // ═══════════════════════════════════════════
 // Step 3: Concatenate all segments + cards
 // ═══════════════════════════════════════════
+
+/**
+ * Static center-crop for all non-intro voiced segments.
+ * Crops out the empty dark borders on left/right so the UI content fills the frame.
+ * 1920→1600 width, 1080→900 height (maintains 16:9), then scales back to 1920×1080.
+ */
+const STATIC_CROP = 'crop=1600:900:160:50,scale=1920:1080:flags=lanczos';
+
 function concatenateAllSegments(): string {
   console.log('\n🎞️ Concatenating title + segments + outro...');
 
@@ -259,7 +267,7 @@ function concatenateAllSegments(): string {
   // Write concat file
   const concatFile = path.join(SEGMENTS_DIR, '_trailer_concat.txt');
 
-  // Pre-process each segment: add fades, chapter labels, and zoom effects
+  // Pre-process each segment: add fades, center zoom, and animated zoom effects
   const processedParts: string[] = [];
   for (const p of allParts) {
     const basename = path.basename(p, path.extname(p));
@@ -270,40 +278,36 @@ function concatenateAllSegments(): string {
       const fadeDur = 0.4;
       const cfg = CHAPTER_CONFIG[basename];
 
+      // Determine if this segment needs the static center crop
+      // Intro (01-) is teaser slides without app UI — skip crop
+      const needsStaticCrop = !basename.startsWith('01-');
+
       // Build video filter chain
       const vfParts: string[] = [];
 
-      // 1. Boundary fades (dark, no white flash)
+      // 1. Static center crop (before animated zooms, for scenes 02-06)
+      if (needsStaticCrop) {
+        vfParts.push(STATIC_CROP);
+      }
+
+      // 2. Animated zoom moments (crop operates on the already-cropped 1920×1080 frame)
+      if (cfg && cfg.zooms.length > 0) {
+        vfParts.push(buildZoomFilters(cfg.zooms));
+      }
+
+      // 3. Boundary fades (dark, no white flash)
       vfParts.push(`fade=t=in:st=0:d=${fadeDur}:color=0x0a0e17`);
       vfParts.push(`fade=t=out:st=${(dur - fadeDur).toFixed(2)}:d=${fadeDur}:color=0x0a0e17`);
-
-      // 2. Chapter label popup
-      if (cfg) {
-        vfParts.push(buildChapterLabel(cfg));
-      }
 
       const vf = vfParts.join(',');
       const processedOut = path.join(SEGMENTS_DIR, `_proc_${path.basename(p)}`);
 
-      // Single pass: zoom (crop+scale) + fades + labels all at once
-      if (cfg && cfg.zooms.length > 0) {
-        const zoomFilter = buildZoomFilters(cfg.zooms);
-        // Zoom first, then fades + labels
-        exec(
-          `ffmpeg -y -i "${p}" ` +
-          `-vf "${zoomFilter},${vf}" ` +
-          `-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -c:a copy "${processedOut}"`,
-          `Zoom+Labels ${basename}`
-        );
-      } else {
-        // Just fades + labels
-        exec(
-          `ffmpeg -y -i "${p}" ` +
-          `-vf "${vf}" ` +
-          `-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -c:a copy "${processedOut}"`,
-          `Process ${basename}`
-        );
-      }
+      exec(
+        `ffmpeg -y -i "${p}" ` +
+        `-vf "${vf}" ` +
+        `-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -c:a copy "${processedOut}"`,
+        `${needsStaticCrop ? 'Crop+' : ''}${cfg?.zooms.length ? 'Zoom ' : 'Process '}${basename}`
+      );
 
       processedParts.push(processedOut);
     } else {
