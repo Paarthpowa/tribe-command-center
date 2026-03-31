@@ -71,7 +71,7 @@ One app. One tribe. Everything in one place.
 |----------------|-----|
 | **Project Repo** *(required)* | https://github.com/Paarthpowa/tribe-command-center |
 | **Website**    | https://tribe-command-center.pages.dev |
-| **Demo Video** *(required)* | *(Upload trailer to YouTube — use `recordings/tribe-command-center-trailer-v3-oblivion-A-quiet.mp4` or `tunetank-epic-A-quiet` variant)* |
+| **Demo Video** *(required)* | *(Upload trailer to YouTube — use `recordings/tribe-command-center-trailer-v5-oblivion-A-quiet.mp4`)* |
 
 ---
 
@@ -143,13 +143,12 @@ VITE_OBJECT_ID=<your-ssu-object-id>
 
 | File | Description | Size |
 |------|-------------|------|
-| `tribe-command-center-trailer-v3.mp4` | Base trailer (voiceover only) | ~16.1 MB |
-| `tribe-command-center-trailer-v3-oblivion-A-quiet.mp4` | Oblivion music (quiet) | ~17.1 MB |
-| `tribe-command-center-trailer-v3-tunetank-epic-A-quiet.mp4` | Epic music (quiet) | ~17.1 MB |
-| `tribe-command-center-trailer-v3-corporate-suspense-A-quiet.mp4` | Corporate Suspense music (quiet) | ~17.1 MB |
-| `tribe-command-center-trailer-v3-corporate-suspense-N-normal.mp4` | Corporate Suspense music (normal volume) | ~17.1 MB |
+| `tribe-command-center-trailer-v5.mp4` | Base trailer (voiceover only, dynamic zoom) | ~16.6 MB |
+| `tribe-command-center-trailer-v5-oblivion-A-quiet.mp4` | Oblivion music (quiet) — **recommended** | ~17.6 MB |
+| `tribe-command-center-trailer-v5-tunetank-epic-A-quiet.mp4` | Epic music (quiet) | ~17.5 MB |
+| `tribe-command-center-trailer-v5-corporate-suspense-A-quiet.mp4` | Corporate Suspense music (quiet) | ~17.5 MB |
 
-All trailers: 2:44 duration, 1920×1080, h.264 + AAC, 25fps
+All trailers: ~2:44 duration, 1920×1080, h.264 + AAC, 25fps, dynamic zoom in/out per scene
 
 ---
 
