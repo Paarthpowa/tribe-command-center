@@ -64,7 +64,7 @@ function getDuration(filePath: string): number {
 // ═══════════════════════════════════════════
 
 function buildBase(): { baseVideo: string; voiceTrack: string; videoDur: number } {
-  const existingTrailer = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v4.mp4');
+  const existingTrailer = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v5.mp4');
   if (!fs.existsSync(existingTrailer)) {
     console.error('❌ No existing trailer-v2. Run build-trailer.ts first!');
     process.exit(1);
@@ -310,7 +310,7 @@ function applyPolish(inputPath: string, trackName: string, variant: string): str
   const dur = getDuration(inputPath);
   const finalOutput = path.join(
     RECORDINGS_DIR,
-    `tribe-command-center-trailer-v4-${trackName}-${variant}.mp4`,
+    `tribe-command-center-trailer-v5-${trackName}-${variant}.mp4`,
   );
 
   exec(

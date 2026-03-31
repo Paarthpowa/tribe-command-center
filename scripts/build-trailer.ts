@@ -27,7 +27,7 @@ const BG_MUSIC = path.resolve(RECORDINGS_DIR, 'bg-ambient.mp3');
 // Output files
 const TITLE_CARD = path.join(SEGMENTS_DIR, '_title-card.mp4');
 const OUTRO_CARD = path.join(SEGMENTS_DIR, '_outro-card.mp4');
-const TRAILER_OUTPUT = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v4.mp4');
+const TRAILER_OUTPUT = path.join(RECORDINGS_DIR, 'tribe-command-center-trailer-v5.mp4');
 
 // Voiced segments in order
 const SEGMENTS = [
@@ -114,146 +114,148 @@ function createOutroCard() {
 }
 
 // ═══════════════════════════════════════════
-// Chapter labels + zoom-in moments per segment
+// Dynamic zoom: crop-based zoom in/out per segment
 // ═══════════════════════════════════════════
-interface ChapterConfig {
-  /** Text shown as a popup label (top-left corner) */
-  label: string;
-  /** When the label appears (seconds into the segment) */
-  labelStart: number;
-  /** How long the label stays visible (seconds) */
-  labelDur: number;
-  /** Zoom-in moments: { start, dur, zoomFactor, focusX%, focusY% } */
-  zooms: Array<{ start: number; dur: number; zoom: number; fx: number; fy: number }>;
-}
 
-const CHAPTER_CONFIG: Record<string, ChapterConfig> = {
-  '02-dashboard-voiced': {
-    label: 'IDENTITY & DASHBOARD',
-    labelStart: 1.0,
-    labelDur: 4.0,
-    zooms: [
-      // Zoom into the resource coverage area
-      { start: 8.0, dur: 3.0, zoom: 1.3, fx: 0.5, fy: 0.55 },
-    ],
-  },
-  '03-intel-map-voiced': {
-    label: 'INTEL & TERRITORY',
-    labelStart: 0.5,
-    labelDur: 4.0,
-    zooms: [
-      // Zoom when filling the rift report form
-      { start: 16.0, dur: 5.0, zoom: 1.4, fx: 0.72, fy: 0.5 },
-    ],
-  },
-  '04-goals-voiced': {
-    label: 'GOALS & PLEDGE SYSTEM',
-    labelStart: 0.5,
-    labelDur: 4.0,
-    zooms: [
-      // Zoom on the pledge modal
-      { start: 10.0, dur: 4.5, zoom: 1.35, fx: 0.5, fy: 0.45 },
-    ],
-  },
-  '05-fleets-reputation-voiced': {
-    label: 'FLEETS & REPUTATION',
-    labelStart: 0.5,
-    labelDur: 4.0,
-    zooms: [
-      // Zoom on the leaderboard member expand
-      { start: 18.0, dur: 5.0, zoom: 1.35, fx: 0.5, fy: 0.45 },
-    ],
-  },
-  '06-outro-voiced': {
-    label: 'THE FOUNDATION',
-    labelStart: 0.5,
-    labelDur: 3.5,
-    zooms: [],
-  },
+/**
+ * Zoom state: 'in' = cropped center (1600×900 → 1920×1080),
+ *             'out' = full frame (1920×1080 → 1920×1080, no crop).
+ *
+ * Each segment defines time-based zoom transitions:
+ *   { at: seconds, state: 'in'|'out' }
+ * Transitions ramp smoothly over RAMP_SEC seconds.
+ *
+ * Cropped values (zoom in):  w=1600, h=900, x=160, y=50
+ * Full values (zoom out):    w=1920, h=1080, x=0, y=0
+ */
+interface ZoomTransition { at: number; state: 'in' | 'out' }
+
+const RAMP_SEC = 0.8; // smooth transition duration
+
+/**
+ * Per-segment zoom schedule. Segments not listed here get no crop.
+ * Initial state is the state of the first transition at t≤0 (or first entry).
+ */
+const ZOOM_SCHEDULE: Record<string, ZoomTransition[]> = {
+  '02-dashboard-voiced': [
+    // Zoomed in the entire time — login happens at ~2.9s, dashboard content is center-framed
+    { at: 0, state: 'in' },
+  ],
+  '03-intel-map-voiced': [
+    // Zoomed in for star map exploration (0-15s)
+    { at: 0, state: 'in' },
+    // Zoom OUT before system detail panel opens (~16s) — rift form needs full width
+    { at: 15.0, state: 'out' },
+    // Stay out for the rest (rift form, rift sightings, panel stays open)
+  ],
+  '04-goals-voiced': [
+    // Zoom OUT at start — navClick to Dashboard needs to show nav bar
+    { at: 0, state: 'out' },
+    // Zoom IN after landing on dashboard, before scrolling to goals
+    { at: 1.5, state: 'in' },
+    // Zoom OUT when scrollToTop + showing existing contributions (nav bar visible)
+    { at: 20.5, state: 'out' },
+    // Stay out for remaining
+  ],
+  '05-fleets-reputation-voiced': [
+    // Zoom OUT at start — navClick to Fleets shows where we click
+    { at: 0, state: 'out' },
+    // Zoom IN after landing on Fleets page
+    { at: 1.5, state: 'in' },
+    // Zoom OUT before navClick to Members (~15s)
+    { at: 14.0, state: 'out' },
+    // Stay out for Members → Leaderboard nav transitions
+  ],
+  '06-outro-voiced': [
+    // Zoom OUT at start — Alliance→News→Dashboard nav clicks
+    { at: 0, state: 'out' },
+    // Zoom IN after landing on Dashboard for cinematic end scroll
+    { at: 7.0, state: 'in' },
+  ],
 };
 
 /**
- * Build crop+scale filters for smooth zoom-in/out at specified moments.
- * Uses crop with animated expressions (per-frame) + scale back to 1920x1080.
- * Much more reliable than zoompan on Windows.
+ * Build a dynamic crop+scale filter expression for a segment.
+ *
+ * Smoothly transitions between:
+ *   zoom-in:  crop(1600, 900, 160, 50) + scale(1920, 1080)
+ *   zoom-out: crop(1920, 1080, 0, 0)   (no-op crop)
+ *
+ * Uses ffmpeg crop expression variables: iw, ih, t
  */
-function buildZoomFilters(zooms: ChapterConfig['zooms']): string {
-  if (zooms.length === 0) return '';
+function buildDynamicCropFilter(schedule: ZoomTransition[]): string {
+  if (schedule.length === 0) return '';
 
-  // For each zoom moment, build crop expressions that animate:
-  // ramp in (0.6s) → hold → ramp out (0.6s)
-  // crop width/height shrinks (to zoom in), then scale back to 1920x1080
-  const ramp = 0.6;
-  const filters: string[] = [];
+  // Crop deltas (zoom-in minus zoom-out)
+  // zoom-in:  w=1600 h=900 x=160 y=50
+  // zoom-out: w=1920 h=1080 x=0  y=0
+  // delta_w = -320, delta_h = -180, delta_x = 160, delta_y = 50
+  //
+  // We define "zoom_factor" 0→1 where 0=full-frame, 1=zoomed-in
+  // w = iw - 320 * zf
+  // h = ih - 180 * zf
+  // x = 160 * zf
+  // y = 50 * zf
 
-  for (const z of zooms) {
-    const s = z.start;
-    const e = s + z.dur;
-    const rampEnd = s + ramp;
-    const rampOutStart = e - ramp;
-    const invZ = 1.0 / z.zoom; // crop fraction (e.g. 1/1.35 ≈ 0.74)
+  // Build a piecewise expression for zf (zoom factor) over time
+  // Each transition: ramp from current zf to target zf over RAMP_SEC
+  const parts: string[] = [];
 
-    // Width expression: smoothly goes from iw to iw*invZ and back
-    const wExpr =
-      `if(between(t\\,${s.toFixed(1)}\\,${rampEnd.toFixed(1)})\\,` +
-        `iw*(1-(1-${invZ.toFixed(4)})*(t-${s.toFixed(1)})/${ramp.toFixed(1)})\\,` +
-      `if(between(t\\,${rampEnd.toFixed(1)}\\,${rampOutStart.toFixed(1)})\\,` +
-        `iw*${invZ.toFixed(4)}\\,` +
-      `if(between(t\\,${rampOutStart.toFixed(1)}\\,${e.toFixed(1)})\\,` +
-        `iw*(${invZ.toFixed(4)}+(1-${invZ.toFixed(4)})*(t-${rampOutStart.toFixed(1)})/${ramp.toFixed(1)})\\,` +
-      `iw)))`;
+  for (let i = 0; i < schedule.length; i++) {
+    const cur = schedule[i];
+    const next = schedule[i + 1];
+    const targetZf = cur.state === 'in' ? 1 : 0;
+    const prevZf = i === 0 ? targetZf : (schedule[i - 1].state === 'in' ? 1 : 0);
+    const rampStart = cur.at;
+    const rampEnd = rampStart + RAMP_SEC;
 
-    // Height: same logic
-    const hExpr = wExpr.replace(/iw/g, 'ih');
-
-    // X position: center the crop around focus point
-    const xExpr =
-      `if(between(t\\,${s.toFixed(1)}\\,${e.toFixed(1)})\\,` +
-        `(iw-out_w)*${z.fx.toFixed(2)}\\,0)`;
-
-    // Y position
-    const yExpr =
-      `if(between(t\\,${s.toFixed(1)}\\,${e.toFixed(1)})\\,` +
-        `(ih-out_h)*${z.fy.toFixed(2)}\\,0)`;
-
-    filters.push(`crop=${wExpr}:${hExpr}:${xExpr}:${yExpr}`);
+    if (i === 0 && prevZf === targetZf) {
+      // Initial state, no ramp needed — handle in "else" of next transition
+    } else {
+      // Ramp from prevZf to targetZf between rampStart and rampEnd
+      // zf = prevZf + (targetZf - prevZf) * clamp((t - rampStart) / RAMP_SEC, 0, 1)
+    }
   }
 
-  // After crop, scale back to 1920x1080
-  return filters.join(',') + ',scale=1920:1080:flags=lanczos';
-}
+  // Simpler approach: build zf as a chain of if/else conditions
+  // Starting from the last transition and working backward
+  let zfExpr = schedule[schedule.length - 1].state === 'in' ? '1' : '0';
 
-/**
- * Build drawtext filter for chapter label popup (top-left, glass-style background)
- */
-function buildChapterLabel(cfg: ChapterConfig): string {
-  const fadeIn = 0.4;
-  const fadeOut = 0.4;
-  const end = cfg.labelStart + cfg.labelDur;
+  for (let i = schedule.length - 1; i >= 0; i--) {
+    const cur = schedule[i];
+    const targetZf = cur.state === 'in' ? 1 : 0;
+    const prevZf = i === 0 ? targetZf : (schedule[i - 1].state === 'in' ? 1 : 0);
 
-  // Alpha: fade in over 0.4s, hold, fade out over 0.4s
-  // All commas inside the expression must be escaped with \, for ffmpeg filter parsing
-  const alpha = `if(lt(t\\,${cfg.labelStart.toFixed(1)})\\,0\\,` +
-    `if(lt(t\\,${(cfg.labelStart + fadeIn).toFixed(1)})\\,min(1\\,(t-${cfg.labelStart.toFixed(1)})/${fadeIn.toFixed(1)})\\,` +
-    `if(lt(t\\,${(end - fadeOut).toFixed(1)})\\,1\\,` +
-    `if(lt(t\\,${end.toFixed(1)})\\,max(0\\,1-(t-${(end - fadeOut).toFixed(1)})/${fadeOut.toFixed(1)})\\,0))))`;
+    if (prevZf === targetZf) {
+      // No transition needed at this point
+      continue;
+    }
 
-  // Background box + text (fixed width based on label length)
-  const boxW = cfg.label.length * 12 + 30;
-  return `drawbox=x=30:y=28:w=${boxW}:h=38:color=0x0a0e17@0.7:t=fill:enable='between(t\\,${cfg.labelStart.toFixed(1)}\\,${end.toFixed(1)})',` +
-    `drawtext=text='${cfg.label}':fontsize=20:fontcolor=0x6366f1:x=45:y=34:alpha='${alpha}'`;
+    const rampStart = cur.at;
+    const rampEnd = cur.at + RAMP_SEC;
+
+    // During ramp: linear interpolation
+    const rampExpr = prevZf < targetZf
+      ? `${prevZf}+(${targetZf}-${prevZf})*(t-${rampStart.toFixed(1)})/${RAMP_SEC.toFixed(1)}`
+      : `${prevZf}-(${prevZf}-${targetZf})*(t-${rampStart.toFixed(1)})/${RAMP_SEC.toFixed(1)}`;
+
+    // if t < rampStart: prevZf, elif t < rampEnd: ramp, else: nextExpr
+    zfExpr = `if(lt(t\\,${rampStart.toFixed(1)})\\,${prevZf}\\,if(lt(t\\,${rampEnd.toFixed(1)})\\,${rampExpr}\\,${zfExpr}))`;
+  }
+
+  // Build crop expressions using zf
+  const wExpr = `iw-320*${zfExpr}`;
+  const hExpr = `ih-180*${zfExpr}`;
+  const xExpr = `160*${zfExpr}`;
+  const yExpr = `50*${zfExpr}`;
+
+  // Crop is applied to 1920×1080 input, then scale ensures output is always 1920×1080
+  return `crop='${wExpr}':'${hExpr}':'${xExpr}':'${yExpr}',scale=1920:1080:flags=lanczos`;
 }
 
 // ═══════════════════════════════════════════
 // Step 3: Concatenate all segments + cards
 // ═══════════════════════════════════════════
-
-/**
- * Static center-crop for all non-intro voiced segments.
- * Crops out the empty dark borders on left/right so the UI content fills the frame.
- * 1920→1600 width, 1080→900 height (maintains 16:9), then scales back to 1920×1080.
- */
-const STATIC_CROP = 'crop=1600:900:160:50,scale=1920:1080:flags=lanczos';
 
 function concatenateAllSegments(): string {
   console.log('\n🎞️ Concatenating title + segments + outro...');
@@ -267,7 +269,7 @@ function concatenateAllSegments(): string {
   // Write concat file
   const concatFile = path.join(SEGMENTS_DIR, '_trailer_concat.txt');
 
-  // Pre-process each segment: add fades, center zoom, and animated zoom effects
+  // Pre-process each segment: add fades and dynamic center crop
   const processedParts: string[] = [];
   for (const p of allParts) {
     const basename = path.basename(p, path.extname(p));
@@ -276,26 +278,17 @@ function concatenateAllSegments(): string {
     if (isVoicedSegment) {
       const dur = getDuration(p);
       const fadeDur = 0.4;
-      const cfg = CHAPTER_CONFIG[basename];
-
-      // Determine if this segment needs the static center crop
-      // Intro (01-) is teaser slides without app UI — skip crop
-      const needsStaticCrop = !basename.startsWith('01-');
+      const schedule = ZOOM_SCHEDULE[basename];
 
       // Build video filter chain
       const vfParts: string[] = [];
 
-      // 1. Static center crop (before animated zooms, for scenes 02-06)
-      if (needsStaticCrop) {
-        vfParts.push(STATIC_CROP);
+      // 1. Dynamic crop (for scenes with zoom schedule)
+      if (schedule && schedule.length > 0) {
+        vfParts.push(buildDynamicCropFilter(schedule));
       }
 
-      // 2. Animated zoom moments (crop operates on the already-cropped 1920×1080 frame)
-      if (cfg && cfg.zooms.length > 0) {
-        vfParts.push(buildZoomFilters(cfg.zooms));
-      }
-
-      // 3. Boundary fades (dark, no white flash)
+      // 2. Boundary fades (dark, no white flash)
       vfParts.push(`fade=t=in:st=0:d=${fadeDur}:color=0x0a0e17`);
       vfParts.push(`fade=t=out:st=${(dur - fadeDur).toFixed(2)}:d=${fadeDur}:color=0x0a0e17`);
 
@@ -306,7 +299,7 @@ function concatenateAllSegments(): string {
         `ffmpeg -y -i "${p}" ` +
         `-vf "${vf}" ` +
         `-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -c:a copy "${processedOut}"`,
-        `${needsStaticCrop ? 'Crop+' : ''}${cfg?.zooms.length ? 'Zoom ' : 'Process '}${basename}`
+        `${schedule ? 'DynCrop ' : 'Process '}${basename}`
       );
 
       processedParts.push(processedOut);
