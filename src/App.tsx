@@ -23,17 +23,19 @@ const DEMO_ACCOUNTS: Record<string, string> = {
 };
 
 function App() {
-  const { walletAddress, isConnected: evConnected, handleConnect, hasEveVault } = useConnection();
+  const { walletAddress, isConnected: evConnected, handleConnect, handleDisconnect, hasEveVault } = useConnection();
   const { isConnected, setWallet, currentMember } = useAppStore();
 
   // Sync EVE Vault connection state → Zustand store
   useEffect(() => {
+    // Don't let EVE Vault auto-reconnect override a demo account
+    const isDemoAddr = Object.values(DEMO_ACCOUNTS).includes(useAppStore.getState().walletAddress ?? '');
+    if (isDemoAddr) return;
+
     if (evConnected && walletAddress) {
       setWallet(walletAddress);
     } else if (!evConnected && isConnected) {
-      // Don't disconnect if using a demo account
-      const isDemoAddr = Object.values(DEMO_ACCOUNTS).includes(useAppStore.getState().walletAddress ?? '');
-      if (!isDemoAddr) setWallet(null);
+      setWallet(null);
     }
   }, [evConnected, walletAddress, isConnected, setWallet]);
 
@@ -42,15 +44,20 @@ function App() {
     if (addr) setWallet(addr);
   };
 
+  const handleFullDisconnect = () => {
+    setWallet(null);
+    try { handleDisconnect?.(); } catch { /* ignore if EVE Vault not connected */ }
+  };
+
   const member = currentMember();
 
   if (!isConnected) {
-    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} onDemoLogin={handleDemoLogin} />;
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} />;
   }
 
   // Connected but member not found or not approved
   if (!member || member.status !== 'approved') {
-    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus={member?.status === 'approved' ? null : (member?.status ?? 'pending')} onDemoLogin={handleDemoLogin} />;
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus={member?.status === 'approved' ? null : (member?.status ?? 'pending')} onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} />;
   }
 
   return (
