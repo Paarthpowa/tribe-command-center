@@ -28,3 +28,6 @@ recordings/
 .env
 .env.local
 !.env.example
+
+# Move build artifacts
+contracts/build/

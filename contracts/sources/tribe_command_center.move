@@ -20,20 +20,16 @@
 module tribe_command_center::membership {
 
     // === Imports ===
-    use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::event;
 
     // === Errors ===
     const E_NOT_LEADER: u64 = 0;
-    const E_ALREADY_MEMBER: u64 = 1;
 
     // === Structs ===
 
     /// Tribe registry — owned by the tribe leader
     /// Contains the tribe metadata and member count
-    struct TribeRegistry has key {
+    public struct TribeRegistry has key {
         id: UID,
         name: vector<u8>,
         leader: address,
@@ -42,7 +38,7 @@ module tribe_command_center::membership {
 
     /// Membership NFT — soulbound to the member's address
     /// Proves tribe membership for Smart Gate access rules
-    struct MembershipNFT has key {
+    public struct MembershipNFT has key {
         id: UID,
         tribe_id: address, // address of TribeRegistry object
         member: address,
@@ -52,13 +48,13 @@ module tribe_command_center::membership {
 
     // === Events ===
 
-    struct MemberAdded has copy, drop {
+    public struct MemberAdded has copy, drop {
         tribe_id: address,
         member: address,
         role: vector<u8>,
     }
 
-    struct MemberRevoked has copy, drop {
+    public struct MemberRevoked has copy, drop {
         tribe_id: address,
         member: address,
     }
@@ -66,7 +62,7 @@ module tribe_command_center::membership {
     // === Functions ===
 
     /// Create a new tribe registry. The caller becomes the leader.
-    public entry fun create_tribe(
+    public fun create_tribe(
         name: vector<u8>,
         ctx: &mut TxContext,
     ) {
@@ -91,7 +87,7 @@ module tribe_command_center::membership {
     }
 
     /// Add a member to the tribe (leader only)
-    public entry fun add_member(
+    public fun add_member(
         registry: &mut TribeRegistry,
         member: address,
         role: vector<u8>,
@@ -119,7 +115,7 @@ module tribe_command_center::membership {
     }
 
     /// Revoke membership — burns the NFT (leader only)
-    public entry fun revoke_member(
+    public fun revoke_member(
         registry: &mut TribeRegistry,
         nft: MembershipNFT,
         ctx: &mut TxContext,
@@ -146,9 +142,6 @@ module tribe_command_center::membership {
 module tribe_command_center::pledges {
 
     // === Imports ===
-    use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::event;
 
     // === Errors ===
@@ -160,7 +153,7 @@ module tribe_command_center::pledges {
 
     /// A pledge commitment — created when a member pledges resources to a task
     /// Shared object so both pledger and goal creator can interact
-    struct PledgeRecord has key {
+    public struct PledgeRecord has key {
         id: UID,
         /// Reference to off-chain goal ID
         goal_id: vector<u8>,
@@ -184,7 +177,7 @@ module tribe_command_center::pledges {
 
     // === Events ===
 
-    struct PledgeMade has copy, drop {
+    public struct PledgeMade has copy, drop {
         goal_id: vector<u8>,
         task_id: vector<u8>,
         pledger: address,
@@ -193,7 +186,7 @@ module tribe_command_center::pledges {
         deadline_epoch: u64,
     }
 
-    struct DeliveryConfirmed has copy, drop {
+    public struct DeliveryConfirmed has copy, drop {
         pledge_id: address,
         pledger: address,
         amount_delivered: u64,
@@ -204,7 +197,7 @@ module tribe_command_center::pledges {
     // === Functions ===
 
     /// Create a pledge for a specific goal/task
-    public entry fun make_pledge(
+    public fun make_pledge(
         goal_id: vector<u8>,
         task_id: vector<u8>,
         resource: vector<u8>,
@@ -238,7 +231,7 @@ module tribe_command_center::pledges {
     }
 
     /// Confirm delivery of pledged resources (pledger only)
-    public entry fun confirm_delivery(
+    public fun confirm_delivery(
         record: &mut PledgeRecord,
         amount: u64,
         ctx: &mut TxContext,
