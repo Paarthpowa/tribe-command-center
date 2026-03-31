@@ -202,27 +202,32 @@ systems-bundle.json (static)
 
 ## What's Next 🔄
 
-### Must-do (before March 31)
+### Must-do (before March 31) — COMPLETED ✅
 | Priority | Feature | Status | Notes |
 |----------|---------|--------|-------|
-| 🔴 P0 | **Orbital Zones checklist** | Blocked — waiting for type list | Per-system checklist of what content is available |
-| 🔴 P0 | **Real wallet connect** | Not started | Wire up `@evefrontier/dapp-kit` + `@mysten/dapp-kit-react` |
-| 🟡 P1 | **On-chain data reads** | Not started | Read tribe/character data from Sui via World API |
-| 🟡 P1 | **Live Stillness deploy** | Not started | +10% bonus score from judges |
+| 🟢 P0 | **Orbital Zones checklist** | ✅ Done | 15 known zone names, per-system tracking in SystemDetailPanel |
+| 🟢 P0 | **Real wallet connect** | ✅ Done | EVE Vault via `@evefrontier/dapp-kit` `useConnection()` hook. Demo login fallback. |
+| 🟢 P0 | **Sui Move contracts** | ✅ Done | `membership` + `pledges` modules. Transaction builders in `sui.ts`. |
+| 🟢 P1 | **On-chain data reads** | ✅ Done | `fetchMembershipNFTs()`, `fetchPledgeEvents()`, `fetchTribeRegistry()` |
+| 🟡 P1 | **Live Stillness deploy** | Planned for April 1–8 | Requires publishing Sui Move contracts to Stillness testnet |
 
-### Nice-to-have
-| Feature | Impact | Effort |
-|---------|--------|--------|
-| System search & filter on Intel page | UX quality | Small |
-| Gate connections visualization on star map | Visual wow | Small-Medium |
-| Scouting heatmap overlay | Strategic value | Medium |
-| Resource aggregation dashboard | Tribe utility | Medium |
-| Goal ↔ System linking | Feature depth | Medium |
-| Export/import tribe data (JSON) | Backup/share | Small |
-| Mobile responsive layout | Accessibility | Medium |
-| Activity feed / notifications | Engagement | Medium |
-| Danger alerts on map | Strategic value | Small |
-| Smart Assembly tracker | Game integration | Medium |
+### Post-submission (April 1–8)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Publish Move contracts to Stillness | Planned | `sui client publish` → set `VITE_SUI_PACKAGE_ID` + `VITE_SUI_TRIBE_REGISTRY_ID` |
+| Wire `signAndExecuteTransaction` | Planned | Connect tx builders to actual wallet signing |
+| Replace mock data with on-chain reads | Planned | Load tribe/member data from Sui objects at login |
+| Alliance creation / join flow | Planned | Currently display-only from mock data |
+
+### Nice-to-have (done)
+| Feature | Status |
+|---------|--------|
+| System search & filter on Intel page | ✅ Done |
+| Activity feed / News page | ✅ Done — 12 event types with date grouping & filters |
+| Fleet Operations | ✅ Done — scheduling, RSVP, past ops |
+| Feedback system | ✅ Done — 5 categories, anonymous, voting |
+| Resource coverage analysis | ✅ Done — on Dashboard |
+| Role-based unclaim protection | ✅ Done — confirmation dialog, leader/officer only |
 
 ---
 

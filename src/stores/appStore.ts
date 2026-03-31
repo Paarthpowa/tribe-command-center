@@ -521,7 +521,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 15,
+      version: 16,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
@@ -534,7 +534,7 @@ export const useAppStore = create<AppState>()(
         feedback: state.feedback,
       }),
       migrate: (_persisted, version) => {
-        if (version < 15) return {};
+        if (version < 16) return {};
         return _persisted as Record<string, unknown>;
       },
     },

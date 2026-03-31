@@ -68,6 +68,7 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
   const [showScoutForm, setShowScoutForm] = useState(false);
   const [showRiftForm, setShowRiftForm] = useState(false);
   const [showEditCategory, setShowEditCategory] = useState(false);
+  const [confirmUnclaim, setConfirmUnclaim] = useState(false);
   const [editThreatLevel, setEditThreatLevel] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>('zones');
   const [editPlanetCount, setEditPlanetCount] = useState(false);
@@ -205,12 +206,43 @@ export function SystemDetailPanel({ system, onClose }: SystemDetailPanelProps) {
           <button onClick={() => setShowRiftForm(!showRiftForm)} style={actionBtnStyle('#a855f7')}>
             <Gem size={12} /> Report Rift
           </button>
-          <button onClick={() => { unclaimSystem(system.id); onClose(); }} style={{
-            ...actionBtnStyle('#ef4444'), marginLeft: 'auto',
-          }}>
-            <Trash2 size={12} /> Unclaim
-          </button>
+          {isLeaderOrOfficer && !confirmUnclaim && (
+            <button onClick={() => setConfirmUnclaim(true)} style={{
+              ...actionBtnStyle('#ef4444'), marginLeft: 'auto',
+            }}>
+              <Trash2 size={12} /> Unclaim
+            </button>
+          )}
         </div>
+
+        {/* Unclaim confirmation */}
+        {confirmUnclaim && (
+          <div style={{
+            marginTop: 10, padding: '10px 12px', borderRadius: 8,
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <AlertTriangle size={14} color="#ef4444" />
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#ef4444' }}>Confirm Unclaim</span>
+            </div>
+            <p style={{ margin: '0 0 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              This will remove <strong style={{ color: 'var(--text-primary)' }}>{system.name}</strong> from your territory.
+              All scouting reports, base assignments, rift sightings, and orbital zones for this system will be permanently lost.
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmUnclaim(false)} style={{
+                padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-subtle)',
+                color: 'var(--text-secondary)', cursor: 'pointer',
+              }}>Cancel</button>
+              <button onClick={() => { unclaimSystem(system.id); onClose(); }} style={{
+                padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                color: '#ef4444', cursor: 'pointer',
+              }}>Yes, Unclaim System</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Scrollable content */}

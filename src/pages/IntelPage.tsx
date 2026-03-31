@@ -57,6 +57,7 @@ function SystemCard({
   onUnclaim?: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [confirmUnclaim, setConfirmUnclaim] = useState(false);
   const cat = CATEGORY_CONFIG[system.category];
   const Icon = cat.icon;
 
@@ -208,9 +209,9 @@ function SystemCard({
                 <Star size={12} /> Set HQ
               </button>
             )}
-            {onUnclaim && (
+            {onUnclaim && !confirmUnclaim && (
               <button
-                onClick={(e) => { e.stopPropagation(); onUnclaim(system.id); }}
+                onClick={(e) => { e.stopPropagation(); setConfirmUnclaim(true); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '4px 10px', borderRadius: 6,
@@ -224,6 +225,34 @@ function SystemCard({
               </button>
             )}
           </div>
+
+          {/* Unclaim confirmation */}
+          {confirmUnclaim && (
+            <div onClick={(e) => e.stopPropagation()} style={{
+              marginTop: 8, padding: '10px 12px', borderRadius: 8,
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <AlertTriangle size={14} color="#ef4444" />
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#ef4444' }}>Confirm Unclaim</span>
+              </div>
+              <p style={{ margin: '0 0 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Remove <strong style={{ color: 'var(--text-primary)' }}>{system.name}</strong>? All data for this system will be permanently lost.
+              </p>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={(e) => { e.stopPropagation(); setConfirmUnclaim(false); }} style={{
+                  padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)', cursor: 'pointer',
+                }}>Cancel</button>
+                <button onClick={(e) => { e.stopPropagation(); onUnclaim?.(system.id); }} style={{
+                  padding: '5px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                  color: '#ef4444', cursor: 'pointer',
+                }}>Yes, Unclaim</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </GlassCard>
@@ -232,6 +261,8 @@ function SystemCard({
 
 export function IntelPage() {
   const { systems, goals, worldSystems, claimSystem, claimGatedNetwork, unclaimSystem, setHQ } = useAppStore();
+  const member = useAppStore(s => s.currentMember());
+  const isLeaderOrOfficer = member?.role === 'leader' || member?.role === 'officer';
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<SystemCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -317,6 +348,7 @@ export function IntelPage() {
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
           Intel & Territory
         </h1>
+        {isLeaderOrOfficer && (
         <button
           onClick={() => setShowClaim(!showClaim)}
           style={{
@@ -335,6 +367,7 @@ export function IntelPage() {
         >
           <Plus size={14} /> Claim System
         </button>
+        )}
       </div>
       <p style={{ margin: '0 0 16px', fontSize: 14, color: 'var(--text-secondary)' }}>
         Strategic overview of known systems, threats, and rift activity.
@@ -529,7 +562,7 @@ export function IntelPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtered.map((s) => (
           <div key={s.id} onClick={() => setDetailSystemId(s.id)} style={{ cursor: 'pointer' }}>
-            <SystemCard system={s} onSetHQ={setHQ} onUnclaim={unclaimSystem} />
+            <SystemCard system={s} onSetHQ={isLeaderOrOfficer ? setHQ : undefined} onUnclaim={isLeaderOrOfficer ? unclaimSystem : undefined} />
           </div>
         ))}
         {filtered.length === 0 && (
