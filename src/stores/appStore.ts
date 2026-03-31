@@ -99,6 +99,11 @@ interface AppState {
 
   /* Self-service join */
   joinTribe: (address: string, name: string) => void;
+
+  /* Tribe management */
+  createTribe: (name: string, description: string) => void;
+  setMemberRole: (memberId: string, role: 'leader' | 'officer' | 'member') => void;
+  transferLeadership: (memberId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -274,6 +279,69 @@ export const useAppStore = create<AppState>()(
           };
           return { members: [...s.members, newMember] };
         }),
+
+      createTribe: (name, description) => {
+        const addr = get().walletAddress;
+        if (!addr) return;
+        const tribeId = `tribe-${Date.now()}`;
+        const tribe: Tribe = {
+          id: tribeId,
+          name,
+          description,
+          leaderAddress: addr,
+          memberCount: 1,
+          createdAt: new Date().toISOString(),
+        };
+        const leader: TribeMember = {
+          id: `m-${Date.now()}`,
+          address: addr,
+          name: name + ' Leader',
+          role: 'leader',
+          status: 'approved',
+          clearance: 'leader',
+          joinedAt: new Date().toISOString(),
+          reputation: { score: 100, totalPledges: 0, deliveredOnTime: 0, deliveredLate: 0, failedPledges: 0 },
+        };
+        set({
+          tribe,
+          members: [leader],
+          systems: [],
+          goals: [],
+          activities: [],
+          alliance: null,
+          fleets: [],
+          feedback: [],
+        });
+        get().addActivity({ type: 'member_joined', description: `Tribe "${name}" founded` });
+      },
+
+      setMemberRole: (memberId, role) => {
+        const me = get().currentMember();
+        if (me?.role !== 'leader') return;
+        set((s) => ({
+          members: s.members.map((m) =>
+            m.id === memberId && m.role !== 'leader'
+              ? { ...m, role, clearance: role === 'officer' ? 'officer' as const : m.clearance }
+              : m,
+          ),
+        }));
+      },
+
+      transferLeadership: (memberId) => {
+        const me = get().currentMember();
+        if (me?.role !== 'leader') return;
+        const target = get().members.find((m) => m.id === memberId);
+        if (!target || target.status !== 'approved') return;
+        set((s) => ({
+          tribe: s.tribe ? { ...s.tribe, leaderAddress: target.address } : null,
+          members: s.members.map((m) => {
+            if (m.id === me!.id) return { ...m, role: 'officer' as const, clearance: 'officer' as const };
+            if (m.id === memberId) return { ...m, role: 'leader' as const, clearance: 'leader' as const };
+            return m;
+          }),
+        }));
+        get().addActivity({ type: 'member_joined', description: `Leadership transferred to ${target.name}` });
+      },
 
       /* ── Territory management ── */
 
@@ -541,10 +609,11 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'tribe-command-center',
-      version: 16,
+      version: 17,
       partialize: (state) => ({
         walletAddress: state.walletAddress,
         isConnected: state.isConnected,
+        tribe: state.tribe,
         systems: state.systems,
         members: state.members,
         goals: state.goals,
@@ -554,7 +623,7 @@ export const useAppStore = create<AppState>()(
         feedback: state.feedback,
       }),
       migrate: (_persisted, version) => {
-        if (version < 16) return {};
+        if (version < 17) return {};
         return _persisted as Record<string, unknown>;
       },
     },

@@ -24,7 +24,7 @@ const DEMO_ACCOUNTS: Record<string, string> = {
 
 function App() {
   const { walletAddress, isConnected: evConnected, handleConnect, handleDisconnect, hasEveVault } = useConnection();
-  const { isConnected, setWallet, currentMember, joinTribe, walletAddress: storeWallet } = useAppStore();
+  const { isConnected, setWallet, currentMember, joinTribe, createTribe, walletAddress: storeWallet } = useAppStore();
 
   // Sync EVE Vault connection state → Zustand store
   useEffect(() => {
@@ -55,6 +55,21 @@ function App() {
     }
   };
 
+  const handleCreateTribe = (tribeName: string, description: string, pilotName: string) => {
+    if (storeWallet) {
+      createTribe(tribeName, description);
+      // Update the leader member's name to the pilot name
+      const members = useAppStore.getState().members;
+      if (members.length > 0 && members[0].name !== pilotName) {
+        useAppStore.setState((s) => ({
+          members: s.members.map((m) =>
+            m.address === storeWallet ? { ...m, name: pilotName } : m,
+          ),
+        }));
+      }
+    }
+  };
+
   const member = currentMember();
 
   if (!isConnected) {
@@ -63,7 +78,7 @@ function App() {
 
   // Connected but no member record → show welcome / join screen
   if (!member) {
-    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus="new" onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} onJoinTribe={handleJoinTribe} />;
+    return <LoginPage onConnect={handleConnect} hasEveVault={hasEveVault} memberStatus="new" onDemoLogin={handleDemoLogin} onDisconnect={handleFullDisconnect} onJoinTribe={handleJoinTribe} onCreateTribe={handleCreateTribe} />;
   }
 
   // Member exists but not approved

@@ -1,6 +1,6 @@
 import { useAppStore } from '../stores/appStore';
 import { GlassCard } from '../components/ui';
-import { Shield, Star, User, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Shield, Star, User, MapPin, Clock, CheckCircle, XCircle, Crown } from 'lucide-react';
 import type { MemberClearance } from '../types';
 import { isContractDeployed, buildAddMemberTx } from '../lib/sui';
 
@@ -27,9 +27,10 @@ function timeAgo(dateStr: string): string {
 }
 
 export function MembersPage() {
-  const { members, tribe, currentMember, approveMember, rejectMember, systems } = useAppStore();
+  const { members, tribe, currentMember, approveMember, rejectMember, setMemberRole, transferLeadership, systems } = useAppStore();
   const me = currentMember();
   const canManage = me?.clearance === 'leader' || me?.clearance === 'officer';
+  const isLeader = me?.role === 'leader';
 
   const approved = members.filter((m) => m.status === 'approved');
   const pending = members.filter((m) => m.status === 'pending');
@@ -174,6 +175,42 @@ export function MembersPage() {
                       <Clock size={12} color="var(--text-muted)" /> {timeAgo(m.profile.lastActive)}
                     </span>
                   )}
+                </div>
+              )}
+
+              {/* Role management — leader only */}
+              {isLeader && m.id !== me?.id && (
+                <div style={{ display: 'flex', gap: 8, paddingLeft: 54, marginTop: 10, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 4 }}>Role:</span>
+                  <select
+                    value={m.role}
+                    onChange={(e) => setMemberRole(m.id, e.target.value as 'leader' | 'officer' | 'member')}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-subtle)',
+                      background: 'rgba(255,255,255,0.03)', color: 'var(--text-primary)', fontSize: 12,
+                      cursor: 'pointer', outline: 'none',
+                    }}
+                  >
+                    <option value="member">Member</option>
+                    <option value="officer">Officer</option>
+                  </select>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Transfer leadership to ${m.name}? You will become an officer.`)) {
+                        transferLeadership(m.id);
+                      }
+                    }}
+                    style={{
+                      padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.3)',
+                      background: 'rgba(245,158,11,0.08)', color: '#f59e0b', fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(245,158,11,0.18)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(245,158,11,0.08)')}
+                  >
+                    <Crown size={12} /> Transfer Leadership
+                  </button>
                 </div>
               )}
             </GlassCard>
